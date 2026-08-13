@@ -332,3 +332,97 @@ describe("Requirement: Suggested table IDs and captions", () => {
     expect(T.suggestCaptionFromContext(root, root.querySelector("table"))).toBe("");
   });
 });
+
+// ===== Complex-table accessibility (H43 id/headers) =====
+describe("Complex-table accessibility (H43)", () => {
+  it("isComplexTable detects multi-level / merged-header tables", () => {
+    const simple = makeTable(
+      "<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><th>R</th><td>1</td></tr></tbody></table>"
+    );
+    expect(T.isComplexTable(simple)).toBe(false);
+
+    const twoHeadRows = makeTable(
+      "<table><thead><tr><th>A</th></tr><tr><th>a</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table>"
+    );
+    expect(T.isComplexTable(twoHeadRows)).toBe(true);
+
+    const colspan = makeTable(
+      "<table><thead><tr><th colspan=\"2\">A</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>"
+    );
+    expect(T.isComplexTable(colspan)).toBe(true);
+  });
+
+  it("generates ids + headers for a 2-level column-header table", () => {
+    // X spans 2 rows (col0); Y spans 2 cols (row0 col1-2); C1/C2 under Y.
+    const table = makeTable(
+      "<table>" +
+        "<thead>" +
+        "<tr><th rowspan=\"2\">X</th><th colspan=\"2\">Y</th></tr>" +
+        "<tr><th>C1</th><th>C2</th></tr>" +
+        "</thead>" +
+        "<tbody><tr><th>R</th><td>1</td><td>2</td></tr></tbody>" +
+        "</table>"
+    );
+    T.generateAccessibilityHeaders(table, "tbl1");
+
+    // Every th got a position-based id.
+    const ths = table.querySelectorAll("th");
+    ths.forEach((th) => expect(th.id.length).toBeGreaterThan(0));
+
+    const td1 = table.querySelector("tbody td:nth-child(2)");
+    const td2 = table.querySelector("tbody td:nth-child(3)");
+    // td1 (col1): Y(parent, r0c1) + C1(r1c1) + R(r2c0)
+    expect(td1.getAttribute("headers")).toBe("tbl1-r0-c1 tbl1-r1-c1 tbl1-r2-c0");
+    // td2 (col2): Y(r0c1, first pos) + C2(r1c2) + R(r2c0)
+    expect(td2.getAttribute("headers")).toBe("tbl1-r0-c1 tbl1-r1-c2 tbl1-r2-c0");
+  });
+
+  it("preserves a human-set th id and builds around it", () => {
+    const table = makeTable(
+      "<table><thead><tr><th id=\"keep-me\" colspan=\"2\">Y</th></tr></thead>" +
+        "<tbody><tr><td>1</td><td>2</td></tr></tbody></table>"
+    );
+    T.generateAccessibilityHeaders(table, "tbl1");
+    expect(table.querySelector("thead th").id).toBe("keep-me");
+    // td references the preserved id.
+    expect(table.querySelector("td").getAttribute("headers")).toContain("keep-me");
+  });
+
+  it("self-consistency: every referenced id exists and th ids are unique", () => {
+    const table = makeTable(
+      "<table><thead>" +
+        "<tr><th rowspan=\"2\">X</th><th colspan=\"2\">Y</th></tr>" +
+        "<tr><th>C1</th><th>C2</th></tr>" +
+        "</thead><tbody><tr><th>R</th><td>1</td><td>2</td></tr></tbody></table>"
+    );
+    T.generateAccessibilityHeaders(table, "tbl1");
+
+    const thIds = new Set();
+    table.querySelectorAll("th").forEach((th) => {
+      expect(th.id).toBeTruthy();
+      expect(thIds.has(th.id)).toBe(false);
+      thIds.add(th.id);
+    });
+    table.querySelectorAll("td[headers]").forEach((td) => {
+      td.getAttribute("headers")
+        .split(/\s+/)
+        .forEach((id) => {
+          expect(thIds.has(id)).toBe(true); // no dangling references
+        });
+    });
+  });
+
+  it("a simple table left to the caller: scope-only (no id/headers added here)", () => {
+    // generateAccessibilityHeaders CAN run on simple tables, but the auto path
+    // only runs it on complex tables. Verify the auto gate doesn't fire here.
+    const simple = makeTable(
+      "<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><th>R</th><td>1</td><td>2</td></tr></tbody></table>"
+    );
+    expect(T.isComplexTable(simple)).toBe(false);
+    // And formatTablesInContainer does NOT add headers attrs to a simple table.
+    const container = document.createElement("div");
+    container.appendChild(simple);
+    T.formatTablesInContainer(container, { scope: true, trim: true });
+    expect(simple.querySelector("td[headers]")).toBe(null);
+  });
+});

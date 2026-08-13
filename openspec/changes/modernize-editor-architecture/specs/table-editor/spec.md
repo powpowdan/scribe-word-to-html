@@ -1,23 +1,33 @@
 ## ADDED Requirements
 
-### Requirement: Complex scoping mode for header-to-cell associations
+### Requirement: Automatic complex-table accessibility associations (id/headers)
 
-The table editor SHALL provide a scoping mode in which the user selects a header cell as a parent and then adds or removes an association between that parent and one or more data cells, producing explicit association markup (for example, `scope` and/or `headers` attributes) so that each associated data cell is programmatically linked to its parent header at the chosen indentation level. While scoping mode is active, ordinary table editing SHALL be suspended until the user exits the mode.
+For complex tables — those with more than one header row, or any merged header cell (`colspan` or `rowspan` greater than 1) — the editor SHALL generate W3C H43 accessibility associations automatically: a unique `id` on every header cell (`<th>`) that lacks one, and a `headers` attribute on every data cell (`<td>`) listing the space-separated `id`s of every header cell that governs it (the column-header stack from each header row, plus the row-header cells in the data cell's own row, accounting for spanning). Simple tables SHALL be left scope-only (no `id`/`headers` noise). Existing human-set `id`s SHALL be preserved.
 
-#### Scenario: Entering scoping mode suspends ordinary editing
+#### Scenario: Simple table is left scope-only
 
-- **WHEN** the user activates scoping mode on a table
-- **THEN** the editor indicates that table editing is locked to scoping and only header-selection and association actions are available
+- **WHEN** content with a simple table (one header row, no merged header cells) is pasted and formatted
+- **THEN** the table keeps `scope` attributes but receives no `id` on its headers and no `headers` attribute on its data cells
 
-#### Scenario: Associating data cells with a parent header
+#### Scenario: Complex table gets id/headers automatically on paste
 
-- **WHEN** the user selects a header cell as the parent and then selects or drags over one or more data cells
-- **THEN** those data cells gain association markup linking them to the selected parent header
+- **WHEN** content with a complex table (merged header cells, or multiple header rows) is pasted and formatted
+- **THEN** every header cell has a unique `id` and every data cell has a `headers` attribute referencing every header cell that governs it
 
-#### Scenario: Removing an existing association
+#### Scenario: A data cell under a spanning parent and a child header references both
 
-- **WHEN** the user selects a data cell already associated with the active parent
-- **THEN** the association between that cell and the parent is removed
+- **WHEN** a data cell sits in a column governed by a spanning parent header and a child header beneath it, in a row with a row header
+- **THEN** the data cell's `headers` attribute lists the parent header id, the child header id, and the row header id
+
+#### Scenario: Existing human-set ids are preserved
+
+- **WHEN** a header cell already has an `id` when associations are generated
+- **THEN** that `id` is kept, and data-cell `headers` attributes reference it
+
+#### Scenario: Regeneration is available on demand
+
+- **WHEN** the user triggers the on-demand association command on the active table
+- **THEN** `id` and `headers` associations are (re)generated for that table from its current structure
 
 ### Requirement: Financial table numeric right-alignment
 

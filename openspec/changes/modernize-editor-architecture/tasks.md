@@ -51,7 +51,7 @@
 - [x] 5.2 Add delete-column action, colspan-aware
 - [x] 5.3 Add a dedicated add-empty-footer-row action (distinct from move-to-footer)
 - [x] 5.4 Add ID and caption suggestions derived from document context; optional one-tap accept
-- [ ] 5.5 Add complex scoping mode: select parent header, associate/disassociate data cells, suspend ordinary editing while active *(DEFERRED — risky flagship; its own focused increment)*
+- [x] 5.5 Add complex scoping mode: select parent header, associate/disassociate data cells, suspend ordinary editing while active *(implemented as an automatic H43 id/headers generator instead of a manual scoping mode — grounded in W3C/GCWeb; spec rewritten to match)*
 - [x] 5.6 Add financial-table numeric right-alignment option *(delivered via the Financial preset dropdown in Inc 2; toggle-checkbox UX variant skipped as redundant)*
 - [x] 5.7 Add French-number-format option (comma decimals, narrow-nbsp thousands separators) *(delivered via the French Numbers preset dropdown in Inc 2; toggle-checkbox UX variant skipped as redundant)*
 

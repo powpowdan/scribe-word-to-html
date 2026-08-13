@@ -264,8 +264,16 @@
 
   // Runs the format pass on every table in a container. Used at paste time so
   // pasted tables arrive formatted (preserves the legacy renderCanvas UX).
+  // Complex tables (multi-level / merged headers) additionally get H43 id/
+  // headers accessibility associations generated automatically.
   function formatTablesInContainer(container, opts) {
-    container.querySelectorAll("table").forEach((t) => formatTableOnClean(t, opts));
+    const tables = container.querySelectorAll("table");
+    tables.forEach((t, i) => {
+      formatTableOnClean(t, opts);
+      if (isComplexTable(t)) {
+        generateAccessibilityHeaders(t, t.id || "tbl" + (i + 1));
+      }
+    });
   }
 
   // Immediately applies a preset to an existing table (idempotent additions).
@@ -731,6 +739,80 @@
   }
 
   // ===========================================================================
+  // COMPLEX-TABLE ACCESSIBILITY (id/headers per W3C H43 / GCWeb/WET)
+  // ===========================================================================
+
+  // A table is "complex" (needs id/headers beyond scope) when it has more than
+  // one header row, or any merged (colspan/rowspan > 1) header cell. Simple
+  // tables keep scope-only output.
+  function isComplexTable(table) {
+    if (table.querySelectorAll("thead tr").length > 1) return true;
+    const ths = table.querySelectorAll("th");
+    for (let i = 0; i < ths.length; i++) {
+      if ((parseInt(ths[i].getAttribute("colspan"), 10) || 1) > 1) return true;
+      if ((parseInt(ths[i].getAttribute("rowspan"), 10) || 1) > 1) return true;
+    }
+    return false;
+  }
+
+  // Deterministically assign ids to every <th> and fill each <td>'s `headers`
+  // attribute with the space-separated ids of every <th> that governs it:
+  //   - column headers: for each thead row, the cell covering the td's column
+  //     (handles colspan/rowspan parent headers via the grid)
+  //   - row headers:    the <th> cells in the td's own row (incl. spanning)
+  // Existing th ids are preserved. Ids are position-based: `${idPrefix}-r{row}-c{col}`.
+  function generateAccessibilityHeaders(table, idPrefix) {
+    const prefix = idPrefix || table.id || "tbl";
+    const grid = buildCellGrid(table); // grid[row][col] = cell
+    if (!grid.length) return;
+
+    // Map each cell to its first grid position (for id assignment).
+    const pos = new Map(); // cell -> { row, col }
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < (grid[r] ? grid[r].length : 0); c++) {
+        const cell = grid[r][c];
+        if (cell && !pos.has(cell)) pos.set(cell, { row: r, col: c });
+      }
+    }
+
+    // 1. Assign ids to every <th> that lacks one.
+    const ths = Array.from(table.querySelectorAll("th"));
+    ths.forEach((th) => {
+      if (th.id) return;
+      const p = pos.get(th);
+      if (!p) return;
+      th.id = prefix + "-r" + p.row + "-c" + p.col;
+    });
+
+    // 2. For each <td>, compute the ordered set of governing <th> cells.
+    const theadRowCount = table.querySelectorAll("thead tr").length;
+    const tds = Array.from(table.querySelectorAll("td"));
+    tds.forEach((td) => {
+      const p = pos.get(td);
+      if (!p) return;
+      const gov = []; // preserve insertion order; dedupe by cell reference
+      const seen = new Set();
+      function add(cell) {
+        if (cell && cell.tagName.toLowerCase() === "th" && !seen.has(cell)) {
+          seen.add(cell);
+          gov.push(cell);
+        }
+      }
+      // Column headers: every thead row's cell covering this column.
+      for (let tr = 0; tr < theadRowCount && tr < grid.length; tr++) {
+        const cell = grid[tr] && grid[tr][p.col];
+        add(cell);
+      }
+      // Row headers: every <th> in the td's own (grid) row.
+      const rowCells = grid[p.row] || [];
+      for (let c = 0; c < rowCells.length; c++) add(rowCells[c]);
+
+      const ids = gov.map((c) => c.id).filter(Boolean);
+      if (ids.length) td.setAttribute("headers", ids.join(" "));
+    });
+  }
+
+  // ===========================================================================
   // MOUNT  (wires a toolbar + Live-view root; rebinding of bindToolbar/
   // attachTableWidget/onCellMouse*/activateTableWidget for the new arch)
   // ===========================================================================
@@ -908,6 +990,10 @@
     bind("deleteRowBtn", deleteRow);
     bind("deleteColBtn", deleteColumns);
     bind("addFooterBtn", addEmptyFooterRow);
+    // Accessibility: regenerate id/headers associations (H43) on demand.
+    bind("a11yBtn", (t) => {
+      generateAccessibilityHeaders(t, t.id || "tbl" + getTablePosition(liveRoot, t));
+    });
     bind("indentBtn", (t) => indent(t, 1));
     bind("outdentBtn", (t) => indent(t, -1));
     bind("boldBtn", toggleBold);
@@ -1063,6 +1149,9 @@
     getTablePosition,
     suggestTableId,
     suggestCaptionFromContext,
+    // complex-table accessibility (H43)
+    isComplexTable,
+    generateAccessibilityHeaders,
     // lifecycle
     mountTableEditor
   };
