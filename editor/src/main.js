@@ -100,6 +100,75 @@
 
     // Debug handle for the acceptance check and power users. Not a public API.
     window.__scribe = { model, liveView, codeView, tableEditor: tableEditorAPI };
+
+    // Code-view power features: line numbers, find/replace (+ regex), go-to-line.
+    if (S.codeViewTools && $("codeView")) {
+      S.codeViewTools.mountCodeViewTools({
+        textarea: $("codeView"),
+        gutter: $("codeLineNumbers"),
+        findPanel: $("codeFindPanel"),
+        findInput: $("codeFindInput"),
+        replaceInput: $("codeReplaceInput"),
+        replaceRow: $("codeReplaceRow"),
+        statusEl: $("codeFindStatus"),
+        regexToggleBtn: $("codeFindRegexToggle"),
+        prevBtn: $("codeFindPrevBtn"),
+        nextBtn: $("codeFindNextBtn"),
+        replaceBtn: $("codeReplaceBtn"),
+        replaceAllBtn: $("codeReplaceAllBtn"),
+        closeBtn: $("codeFindCloseBtn"),
+        replaceToggleBtn: $("codeFindReplaceToggle"),
+        goToLineBtn: $("goToLineBtn")
+      });
+    }
+
+    // Toasts (transient notifications).
+    const toaster = S.createToaster ? S.createToaster($("toastRegion")) : null;
+
+    // Document recovery: debounced autosave + restore prompt on load.
+    let recovery = null;
+    if (S.documentRecovery) {
+      recovery = S.documentRecovery.createRecovery({ model });
+      recovery.start();
+
+      const prompt = $("recoveryPrompt");
+      if (prompt && recovery.shouldPrompt("")) {
+        const record = recovery.getStored();
+        const msg = $("recoveryMessage");
+        if (msg) {
+          const when = new Date(record.savedAt);
+          msg.textContent =
+            "An unsaved document from " + when.toLocaleString() + " is available.";
+        }
+        prompt.hidden = false;
+        const wire = (id, fn) => {
+          const b = $(id);
+          if (b) b.addEventListener("click", fn);
+        };
+        wire("recoveryRestoreBtn", () => {
+          model.setHTML(record.html, ChangeSource.command);
+          prompt.hidden = true;
+          if (toaster) toaster.show("Document restored", "success");
+        });
+        wire("recoveryDismissBtn", () => {
+          prompt.hidden = true; // keep the copy for next load
+        });
+        wire("recoveryDiscardBtn", () => {
+          recovery.discard();
+          prompt.hidden = true;
+          if (toaster) toaster.show("Recovery copy discarded", "info");
+        });
+      }
+    }
+
+    // Onboarding empty-state: visible only while the document is empty.
+    function refreshOnboarding() {
+      const hint = $("onboardingHint");
+      if (!hint) return;
+      hint.style.display = model.getHTML().trim() ? "none" : "";
+    }
+    model.subscribe(refreshOnboarding);
+    refreshOnboarding();
   }
 
   if (document.readyState === "loading") {

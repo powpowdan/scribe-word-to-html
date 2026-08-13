@@ -137,6 +137,22 @@ body {
   color: #fff;
 }
 
+/* WET/Canada.ca class preview compatibility.
+ * The document uses WET class names (text-right, table-condensed, mrgn-lft-*,
+ * fnt-nrml) because they are CORRECT for Canada.ca/WET output. Vendored
+ * Bootstrap 5 renamed/dropped several of these, so they wouldn't render in the
+ * preview. These scoped rules make the WET classes render visually inside the
+ * Live view WITHOUT changing the document/output classes. */
+.live-surface .text-left { text-align: left; }
+.live-surface .text-right { text-align: right; }
+.live-surface .text-center { text-align: center; }
+.live-surface .table-condensed th,
+.live-surface .table-condensed td { padding: 0.3rem 0.4rem; }
+.live-surface .mrgn-lft-md { margin-left: 1rem; }
+.live-surface .mrgn-lft-lg { margin-left: 1.5rem; }
+.live-surface .mrgn-lft-xl { margin-left: 2rem; }
+.live-surface .fnt-nrml { font-weight: 400; }
+
 /* ---------- Image placeholder (image-placeholders spec scenario 1) ---------- */
 .live-surface .img-placeholder {
   display: inline-block;
@@ -163,11 +179,127 @@ body {
   line-height: 1.5;
   resize: vertical;
   outline: none;
+  white-space: pre;
+  overflow-wrap: normal;
+  tab-size: 2;
 }
 .code-textarea:focus {
   border-color: var(--scribe-blue);
   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
 }
+
+/* Code editor: gutter + textarea side by side, scroll locked together. */
+.code-editor {
+  display: flex;
+  border: 1px solid #1e293b;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #0f172a;
+  max-height: 60vh;
+}
+.code-editor .code-gutter {
+  flex: 0 0 auto;
+  min-width: 3rem;
+  padding: 1rem 0.6rem 1rem 0.7rem;
+  background: #0b1326;
+  color: #4a5b7d;
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: right;
+  white-space: pre;
+  user-select: none;
+  overflow: hidden;
+}
+.code-editor .code-textarea {
+  flex: 1 1 auto;
+  border: none;
+  border-radius: 0;
+  resize: none;
+  min-height: 240px;
+}
+
+/* Code-view toolbar + find panel. */
+.code-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.code-toolbar kbd {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.25rem;
+  padding: 0 0.3rem;
+  font-size: 0.72rem;
+}
+.code-find-panel {
+  position: relative;
+  background: rgba(15, 23, 42, 0.97);
+  border: 1px solid #1e293b;
+  border-radius: 0.6rem;
+  padding: 0.45rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+}
+.code-find-panel[hidden] { display: none; }
+.code-find-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.code-find-row-spacer { width: 1.4rem; }
+.code-find-input {
+  flex: 1 1 auto;
+  background: #0b1326;
+  color: #e2e8f0;
+  border: 1px solid #243049;
+  border-radius: 0.35rem;
+  padding: 0.3rem 0.5rem;
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+.code-find-input:focus { outline: none; border-color: var(--scribe-blue); }
+.code-find-icon-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  color: #93a4c7;
+  border: none;
+  border-radius: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  font-family: monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.code-find-icon-btn:hover { background: #1e2a44; color: #e2e8f0; }
+.code-find-icon-btn.active,
+.code-find-icon-btn[aria-pressed="true"] {
+  background: var(--scribe-blue);
+  color: #fff;
+}
+.code-find-close { font-size: 1.1rem; }
+.code-find-status {
+  flex: 0 0 auto;
+  color: #7e8db0;
+  font-size: 0.72rem;
+  min-width: 4rem;
+  text-align: center;
+}
+.code-find-action-btn {
+  background: #243049;
+  color: #e2e8f0;
+  border: none;
+  border-radius: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.code-find-action-btn:hover { background: #2f3e5e; }
 
 /* ---------- Copy button ---------- */
 #copyBtn {
@@ -193,6 +325,110 @@ body {
 }
 .warning-banner .alert:last-child {
   margin-bottom: 0;
+}
+
+/* ---------- Toasts ---------- */
+.toast-region {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1080;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 340px;
+  pointer-events: none;
+}
+.toast-item {
+  pointer-events: auto;
+  background: rgba(15, 23, 42, 0.96);
+  color: #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.85rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+  border-left: 3px solid #0d6efd;
+  animation: toast-in 0.18s ease-out;
+}
+.toast-item.toast-success { border-left-color: #198754; }
+.toast-item.toast-info { border-left-color: #0d6efd; }
+.toast-item.toast-warn { border-left-color: #f59e0b; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Document recovery prompt ---------- */
+.recovery-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 1075;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.recovery-prompt[hidden] { display: none; }
+.recovery-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  padding: 1.6rem 1.8rem;
+  max-width: 460px;
+  width: 100%;
+}
+.recovery-card .recovery-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--scribe-blue);
+}
+.recovery-card h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0.3rem 0 0.4rem;
+  color: #1f2a44;
+}
+.recovery-card p { color: #4a5673; font-size: 0.9rem; margin: 0 0 0.3rem; }
+.recovery-card .recovery-privacy {
+  font-size: 0.78rem;
+  color: #6b7894;
+}
+.recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+/* ---------- Onboarding empty-state ---------- */
+.onboarding-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed #c7d2fe;
+  background: #f4f6ff;
+  border-radius: 0.6rem;
+  color: #1f2a44;
+  font-size: 0.88rem;
+}
+.onboarding-hint .onboarding-icon {
+  font-size: 1.4rem;
+  color: var(--scribe-blue);
+  margin-top: 0.1rem;
+}
+.onboarding-hint p { margin: 0.2rem 0 0; color: #4a5673; font-size: 0.82rem; }
+.onboarding-hint code {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.2rem;
+  padding: 0 0.25rem;
+  font-size: 0.78rem;
 }
 
 /* ---------- Rendered canvas helpers for output clarity ---------- */

@@ -19,9 +19,15 @@
 
     return {
       element,
-      /** Read the rendered HTML (used by sync on blur). */
+      /** Read the rendered HTML for the document model, with editor-only
+       *  selection state (.selected/.hovered from the table editor) stripped
+       *  so the model never holds transient UI classes. */
       read() {
-        return element.innerHTML;
+        const clone = element.cloneNode(true);
+        clone.querySelectorAll(".selected, .hovered").forEach((el) => {
+          el.classList.remove("selected", "hovered");
+        });
+        return clone.innerHTML;
       },
       /** Render HTML into the region without going through the model. */
       write(html) {

@@ -61,6 +61,13 @@
               <h2 class="card-title mb-0"><i class="fa-solid fa-table-list me-2 text-primary"></i>Live view</h2>
               <span class="text-muted small">contentEditable — paste or edit visually; syncs to Code on blur</span>
             </div>
+            <div id="onboardingHint" class="onboarding-hint">
+              <i class="fa-solid fa-feather-pointed onboarding-icon"></i>
+              <div>
+                <strong>Start a document</strong>
+                <p>Paste from Word here (Ctrl+V), upload a <code>.docx</code>, or just start typing. Your work is auto-saved in this browser.</p>
+              </div>
+            </div>
             <div id="liveView" class="editor-surface live-surface" contenteditable="true"
                  data-placeholder="Ctrl+V to paste from Word, or start typing..."></div>
           </div>
@@ -77,8 +84,34 @@
                 <i class="fa-regular fa-clone me-2"></i><span>Copy HTML</span>
               </button>
             </div>
-            <textarea id="codeView" class="code-textarea" rows="12" spellcheck="false"
-                      placeholder="Cleaned HTML appears here after you paste, or type/paste raw HTML..."></textarea>
+            <div class="code-toolbar">
+              <small class="text-muted"><kbd>Ctrl+F</kbd> find &middot; <kbd>Ctrl+Shift+F</kbd> find &amp; replace &middot; <kbd>Ctrl+G</kbd> go to line</small>
+              <button type="button" id="goToLineBtn" class="btn btn-sm btn-outline-secondary ms-auto"><i class="fa-solid fa-arrow-down me-1"></i>Go to line</button>
+            </div>
+
+            <div class="code-find-panel" id="codeFindPanel" hidden>
+              <div class="code-find-row">
+                <button type="button" id="codeFindReplaceToggle" class="code-find-icon-btn" aria-label="Show replace" aria-expanded="false" title="Show replace">›</button>
+                <input type="text" id="codeFindInput" class="code-find-input" placeholder="Find" autocomplete="off" spellcheck="false" aria-label="Find">
+                <button type="button" id="codeFindRegexToggle" class="code-find-icon-btn" aria-label="Use regular expression" aria-pressed="false" title="Regular expression">.*</button>
+                <span id="codeFindStatus" class="code-find-status" aria-live="polite"></span>
+                <button type="button" id="codeFindPrevBtn" class="code-find-icon-btn" aria-label="Previous match" title="Previous (Shift+Enter)">↑</button>
+                <button type="button" id="codeFindNextBtn" class="code-find-icon-btn" aria-label="Next match" title="Next (Enter)">↓</button>
+                <button type="button" id="codeFindCloseBtn" class="code-find-icon-btn code-find-close" aria-label="Close find" title="Close (Esc)">×</button>
+              </div>
+              <div class="code-find-row code-replace-row" id="codeReplaceRow" hidden>
+                <span class="code-find-row-spacer" aria-hidden="true"></span>
+                <input type="text" id="codeReplaceInput" class="code-find-input" placeholder="Replace" autocomplete="off" spellcheck="false" aria-label="Replace">
+                <button type="button" id="codeReplaceBtn" class="code-find-action-btn">Replace</button>
+                <button type="button" id="codeReplaceAllBtn" class="code-find-action-btn">All</button>
+              </div>
+            </div>
+
+            <div class="code-editor">
+              <div class="code-gutter" id="codeLineNumbers" aria-hidden="true"></div>
+              <textarea id="codeView" class="code-textarea" spellcheck="false"
+                        placeholder="Cleaned HTML appears here after you paste, or type/paste raw HTML..."></textarea>
+            </div>
           </div>
         </div>
       </section>
@@ -154,6 +187,24 @@
     </div>
   </div>
 
+  <!-- Document recovery prompt. Shown on load when a saved copy exists. -->
+  <div id="recoveryPrompt" class="recovery-prompt" hidden role="dialog" aria-labelledby="recoveryTitle">
+    <div class="recovery-card">
+      <span class="recovery-kicker">Document recovery</span>
+      <h2 id="recoveryTitle">Continue where you left off?</h2>
+      <p id="recoveryMessage"></p>
+      <p class="recovery-privacy"><i class="fa-solid fa-lock me-1"></i>The copy is stored only in this browser and is not sent anywhere.</p>
+      <div class="recovery-actions">
+        <button type="button" class="btn btn-primary btn-sm" id="recoveryRestoreBtn">Restore document</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="recoveryDismissBtn">Not now</button>
+        <button type="button" class="btn btn-link btn-sm text-danger" id="recoveryDiscardBtn">Discard recovery copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast region for transient notifications. -->
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-label="Recent activity"></div>
+
   <!-- Vendor libraries load first (classic scripts; work via file://). -->
   <script src="vendor/mammoth/mammoth.browser.js"></script>
   <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
@@ -168,6 +219,9 @@
   <script src="src/sync.js"></script>
   <script src="src/entry.js"></script>
   <script src="src/copy.js"></script>
+  <script src="src/code-view-tools.js"></script>
+  <script src="src/toasts.js"></script>
+  <script src="src/document-recovery.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>

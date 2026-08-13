@@ -57,12 +57,12 @@
 
 ## 6. Code-view power features — `code-view-power-features` capability
 
-- [ ] 6.1 Add syntax highlighting that stays in sync with the editable textarea
-- [ ] 6.2 Add line numbers that track content growth and shrinkage
-- [ ] 6.3 Add find with next/previous navigation and wrapping
-- [ ] 6.4 Add regex find mode with backreference support
-- [ ] 6.5 Add replace and replace-all
-- [ ] 6.6 Add go-to-line navigation with rejection of out-of-range line numbers
+- [ ] 6.1 Add syntax highlighting that stays in sync with the editable textarea *(DEFERRED — fiddly overlay technique; line numbers + find/replace + go-to-line shipped without it)*
+- [x] 6.2 Add line numbers that track content growth and shrinkage
+- [x] 6.3 Add find with next/previous navigation and wrapping
+- [x] 6.4 Add regex find mode with backreference support
+- [x] 6.5 Add replace and replace-all
+- [x] 6.6 Add go-to-line navigation with rejection of out-of-range line numbers
 
 ## 7. WYSIWYG formatting toolbar — `wysiwyg-formatting` capability
 
@@ -74,9 +74,9 @@
 
 ## 8. Polish — recovery, toasts, onboarding
 
-- [ ] 8.1 Implement document recovery: debounced autosave to localStorage, restore prompt with restore/dismiss/discard choices, local-only privacy notice
-- [ ] 8.2 Implement a toast region for transient activity notifications
-- [ ] 8.3 Implement an onboarding empty state (upload / instructions / blank-start)
+- [x] 8.1 Implement document recovery: debounced autosave to localStorage, restore prompt with restore/dismiss/discard choices, local-only privacy notice
+- [x] 8.2 Implement a toast region for transient activity notifications
+- [x] 8.3 Implement an onboarding empty state (upload / instructions / blank-start)
 
 ## 9. Bilingual EN/FR — `bilingual-output` capability
 

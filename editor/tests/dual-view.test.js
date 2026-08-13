@@ -120,3 +120,24 @@ describe("Copy HTML serializes placeholders to comments", () => {
     expect(output).not.toContain("[IMAGE");
   });
 });
+
+describe("Live view read() strips editor-only selection state", () => {
+  it("returns HTML without .selected/.hovered (so the model never holds UI state)", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const model = new DocumentModel("");
+    const lv = createLiveView(el, model, { ChangeSource });
+
+    // Simulate the table editor's in-DOM selection markers.
+    el.innerHTML =
+      '<table><tbody><tr><td class="selected">a</td><td class="hovered">b</td></tr></tbody></table>';
+    const html = lv.read();
+
+    expect(html).not.toContain("selected");
+    expect(html).not.toContain("hovered");
+    // Cell content is preserved (happy-dom may leave class="" after stripping;
+    // assert on the cell text rather than the exact tag).
+    expect(html).toContain(">a<");
+    expect(html).toContain(">b<");
+  });
+});
