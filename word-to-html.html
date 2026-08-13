@@ -191,13 +191,6 @@
       border-top: 1px solid #ddd;
       text-align: left;
     }
-    .wet-scope .table thead th {
-      vertical-align: bottom;
-      border-bottom: 2px solid #ddd;
-      border-top: none;
-      background-color: #f5f5f5;
-      font-weight: bold;
-    }
     .wet-scope .table tbody + tbody { border-top: 2px solid #ddd; }
     .wet-scope .table caption {
       padding-top: 0.75rem;
@@ -209,9 +202,22 @@
     .wet-scope .table caption.text-left { text-align: left; }
     .wet-scope .table tbody tr:nth-child(even) { background-color: #f9f9f9; }
     .wet-scope .table tbody tr.active,
-    .wet-scope .table thead tr.active { background-color: #d9edf7; font-weight: bold; }
+    .wet-scope .table thead tr.active { background-color: #d9edf7; }
     .wet-scope .table tbody tr.bg-info,
     .wet-scope .table thead tr.bg-info { background-color: #d9edf7 !important; font-weight: bold; }
+
+    /* Canvas-only image placeholder (serialized to a comment in output) */
+    .wet-scope .img-placeholder {
+      display: inline-block;
+      padding: 0.5rem 0.75rem;
+      margin: 0.25rem 0;
+      border: 2px dashed #6c757d;
+      border-radius: 0.25rem;
+      background-color: #f8f9fa;
+      color: #495057;
+      font-family: monospace;
+      font-size: 0.85em;
+    }
 
     .wet-scope .text-left { text-align: left; }
     .wet-scope .text-center { text-align: center; }
@@ -446,6 +452,20 @@
           <input id="trimOpt" class="form-check-input" type="checkbox" checked>
           <label class="form-check-label small" for="trimOpt">Trim cells</label>
         </div>
+
+        <span class="text-muted small ms-2 me-1">Table:</span>
+        <div class="form-check form-check-inline mb-0">
+          <input id="condensedOpt" class="form-check-input" type="checkbox">
+          <label class="form-check-label small" for="condensedOpt">Condensed</label>
+        </div>
+        <div class="form-check form-check-inline mb-0">
+          <input id="stripedOpt" class="form-check-input" type="checkbox">
+          <label class="form-check-label small" for="stripedOpt">Striped</label>
+        </div>
+        <div class="form-check form-check-inline mb-0">
+          <input id="hoverOpt" class="form-check-input" type="checkbox">
+          <label class="form-check-label small" for="hoverOpt">Hover</label>
+        </div>
       </div>
     </div>
 
@@ -474,6 +494,10 @@
           <button type="button" class="btn btn-sm btn-outline-secondary" id="boldBtn" title="Toggle bold">
             <i class="fa-solid fa-bold"></i>
           </button>
+        </div>
+        <div class="btn-group me-2 mb-1" role="group">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="removePBtn" title="Remove &lt;p&gt; tags from selected cells">No &lt;p&gt;</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="nbspBtn" title="Replace spaces with non-breaking spaces in selected cells">NBSP</button>
         </div>
         <div class="btn-group mb-1" role="group">
           <button type="button" class="btn btn-sm btn-outline-secondary" id="leftAlignBtn" title="Align left">
@@ -840,10 +864,23 @@
     }
 
     function stripImages(container) {
-      const imgs = container.querySelectorAll("img");
-      const count = imgs.length;
-      imgs.forEach(removeElement);
-      return count;
+      const imgs = Array.from(container.querySelectorAll("img"));
+      imgs.forEach((img) => {
+        // Derive a human label: alt text → filename from src → generic.
+        let label = (img.getAttribute("alt") || "").trim();
+        if (!label) {
+          const src = img.getAttribute("src") || "";
+          const match = src.match(/([^\/\\?#]+?)(?:[?#]|$)/);
+          label = match ? match[1] : "";
+        }
+        if (!label) label = "image";
+        const fig = document.createElement("figure");
+        fig.className = "img-placeholder";
+        fig.setAttribute("data-img-alt", label);
+        fig.textContent = "[IMAGE: " + label + "]";
+        if (img.parentNode) img.parentNode.replaceChild(fig, img);
+      });
+      return imgs.length;
     }
 
     function acceptTrackChanges(container) {
@@ -1231,21 +1268,25 @@
         table.appendChild(tbody);
       }
 
-      // Move the first row into a thead if no thead exists
+      // Ensure thead exists; if missing, promote the first body row into one
       let thead = table.querySelector("thead");
       if (!thead) {
         thead = document.createElement("thead");
         table.insertBefore(thead, tbody);
         const firstRow = tbody.querySelector("tr");
-        if (firstRow) {
-          // Convert cells to th with scope=col
-          firstRow.querySelectorAll("td, th").forEach((cell) => {
-            const th = renameTag(cell, "th");
-            if (scopeOn) th.setAttribute("scope", "col");
-          });
-          thead.appendChild(firstRow);
-        }
+        if (firstRow) thead.appendChild(firstRow);
       }
+
+      // Normalize every thead row: cells become <th scope=col>, row gets dark styling.
+      // Also covers Word-supplied theads whose cells were <td>.
+      thead.querySelectorAll("tr").forEach((tr) => {
+        tr.classList.add("bg-dark", "text-white");
+        tr.querySelectorAll("td, th").forEach((cell) => {
+          let th = cell;
+          if (cell.nodeName.toLowerCase() === "td") th = renameTag(cell, "th");
+          if (scopeOn) th.setAttribute("scope", "col");
+        });
+      });
 
       // Add table classes (WET)
       table.classList.add("table", "table-bordered");
@@ -1525,6 +1566,7 @@
       });
       rowsToHead.forEach((tr) => {
         tr.classList.add(getActiveClassName());
+        tr.classList.add("bg-dark", "text-white");
         let count = 0;
         tr.querySelectorAll("td, th").forEach((cell) => {
           let th = cell;
@@ -1543,6 +1585,7 @@
       });
       rowsToBody.forEach((tr) => {
         tr.classList.remove("active", "bg-info");
+        tr.classList.remove("bg-dark", "text-white");
         let isFirst = true;
         tr.querySelectorAll("th, td").forEach((cell) => {
           if (isFirst) {
@@ -1570,22 +1613,18 @@
         tfoot = document.createElement("tfoot");
         table.appendChild(tfoot);
       }
-      let footerTd = tfoot.querySelector("tr > td");
-      if (!footerTd) {
-        const tr = document.createElement("tr");
-        tr.classList.add("small");
-        const td = document.createElement("td");
-        // colspan = max row width
-        let maxWidth = 0;
-        table.querySelectorAll("tr").forEach((r) => {
-          const w = r.querySelectorAll("th, td").length;
-          if (w > maxWidth) maxWidth = w;
-        });
-        td.setAttribute("colspan", String(maxWidth));
-        tr.appendChild(td);
-        tfoot.appendChild(tr);
-        footerTd = td;
+
+      // No selection → ensure an empty footer exists, then stop.
+      const hasSelection = !!table.querySelector("td.selected, th.selected");
+      if (!hasSelection) {
+        ensureFooterCell(table, tfoot);
+        deselectAllCells(table);
+        syncOutput();
+        return;
       }
+
+      // Selection → move selected cells' content into the footer cell.
+      const footerTd = ensureFooterCell(table, tfoot);
       const tbody = table.querySelector("tbody");
       if (!tbody) return;
       const rowsToRemove = [];
@@ -1603,10 +1642,30 @@
       syncOutput();
     }
 
+    // Ensure the footer has a single spanning <td> scaffolding and return it.
+    // Creates <tr class="small"><td colspan=maxWidth></td></tr> if absent; reuses existing.
+    function ensureFooterCell(table, tfoot) {
+      let footerTd = tfoot.querySelector("tr > td");
+      if (!footerTd) {
+        const tr = document.createElement("tr");
+        tr.classList.add("small");
+        const td = document.createElement("td");
+        let maxWidth = 0;
+        table.querySelectorAll("tr").forEach((r) => {
+          const w = r.querySelectorAll("th, td").length;
+          if (w > maxWidth) maxWidth = w;
+        });
+        td.setAttribute("colspan", String(maxWidth));
+        tr.appendChild(td);
+        tfoot.appendChild(tr);
+        footerTd = td;
+      }
+      return footerTd;
+    }
+
     function action_toggleActive() {
       const table = getActiveTable();
       if (!table) return;
-      const scopeOn = $("scopeOpt").checked;
       const cls = getActiveClassName();
       const tbody = table.querySelector("tbody");
       if (!tbody) return;
@@ -1618,16 +1677,17 @@
         } else {
           tr.classList.remove("active", "bg-info");
         }
-        tr.querySelectorAll("th, td").forEach((cell) => {
-          if (cell.nodeName.toLowerCase() === "th") {
-            cell.classList.toggle("fnt-nrml", !isNowActive);
-            if (scopeOn) {
-              cell.setAttribute("scope", isNowActive ? "colgroup" : "row");
+        // Bolding/scope is a backgrounder (bg-info) behavior only.
+        // The plain "active" class is background-only; scope is never changed.
+        if (cls === "bg-info") {
+          tr.querySelectorAll("th, td").forEach((cell) => {
+            if (cell.nodeName.toLowerCase() === "th") {
+              cell.classList.toggle("fnt-nrml", !isNowActive);
+            } else {
+              setBold(cell, isNowActive);
             }
-          } else {
-            setBold(cell, isNowActive);
-          }
-        });
+          });
+        }
       });
       syncOutput();
     }
@@ -1750,6 +1810,40 @@
       }
     }
 
+    function action_removeParagraphs() {
+      const table = getActiveTable();
+      if (!table) return;
+      getSelectedCells(table).forEach((cell) => {
+        // Snapshot first — unwrap mutates the live tree.
+        const paras = Array.from(cell.querySelectorAll("p"));
+        paras.forEach((p) => {
+          // Join consecutive sibling paragraphs with <br>.
+          if (p.nextElementSibling && p.nextElementSibling.nodeName === "P") {
+            p.appendChild(document.createElement("br"));
+          }
+          unwrap(p);
+        });
+      });
+      syncOutput();
+    }
+
+    function action_nbsp() {
+      const table = getActiveTable();
+      if (!table) return;
+      getSelectedCells(table).forEach((cell) => {
+        const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, null, false);
+        const targets = [];
+        let node;
+        while ((node = walker.nextNode())) targets.push(node);
+        targets.forEach((t) => {
+          if (t.nodeValue && t.nodeValue.indexOf(" ") !== -1) {
+            t.nodeValue = t.nodeValue.replace(/ /g, "\u00A0");
+          }
+        });
+      });
+      syncOutput();
+    }
+
     function action_align(alignment) {
       const table = getActiveTable();
       if (!table) return;
@@ -1780,6 +1874,10 @@
       $("captionNumber").value = table.getAttribute("data-caption-num") || "";
       $("captionTitle").value = table.getAttribute("data-caption-title") || "";
       $("captionUnit").value = table.getAttribute("data-caption-unit") || "";
+      // Sync table-modifier checkboxes to the active table's classes
+      $("condensedOpt").checked = table.classList.contains("table-condensed");
+      $("stripedOpt").checked = table.classList.contains("table-striped");
+      $("hoverOpt").checked = table.classList.contains("table-hover");
     }
 
     function hideToolbar() {
@@ -1831,9 +1929,23 @@
       $("indentBtn").addEventListener("click", () => action_indent(1));
       $("outdentBtn").addEventListener("click", () => action_indent(-1));
       $("boldBtn").addEventListener("click", action_toggleBold);
+      $("removePBtn").addEventListener("click", action_removeParagraphs);
+      $("nbspBtn").addEventListener("click", action_nbsp);
       $("leftAlignBtn").addEventListener("click", () => action_align("left"));
       $("centerAlignBtn").addEventListener("click", () => action_align("center"));
       $("rightAlignBtn").addEventListener("click", () => action_align("right"));
+
+      // Table-modifier class toggles (reflect + apply on the active table)
+      [["condensedOpt", "table-condensed"],
+       ["stripedOpt", "table-striped"],
+       ["hoverOpt", "table-hover"]].forEach(([id, cls]) => {
+        $(id).addEventListener("change", () => {
+          if (!activeTableWidget) return;
+          const table = activeTableWidget.querySelector("table");
+          table.classList.toggle(cls, $(id).checked);
+          syncOutput();
+        });
+      });
 
       // Caption live update
       ["captionNumber", "captionTitle", "captionUnit"].forEach((id) => {
@@ -1894,6 +2006,11 @@
         block.classList.remove("prose-block");
         while (block.firstChild) block.parentNode.insertBefore(block.firstChild, block);
         block.parentNode.removeChild(block);
+      });
+      // Convert canvas-only image placeholders into HTML comments for output
+      clone.querySelectorAll(".img-placeholder").forEach((el) => {
+        const label = el.getAttribute("data-img-alt") || "image";
+        el.parentNode.replaceChild(document.createComment(" image: " + label + " "), el);
       });
       // Recursive empty-tag stripping — remove any element (except td/th) with no text content.
       // Loops because removing a child can empty its parent. Strips <p><br></p>, <p> </p>, <strong></strong>, etc.
@@ -2046,7 +2163,7 @@
       const nestedCount = flattenNestedTables(work);
       if (nestedCount > 0) warnings.push(`${nestedCount} nested table${nestedCount === 1 ? "" : "s"} flattened with comment marker.`);
       const imgCount = stripImages(work);
-      if (imgCount > 0) warnings.push(`${imgCount} image${imgCount === 1 ? "" : "s"} removed — handle separately.`);
+      if (imgCount > 0) warnings.push(`${imgCount} image${imgCount === 1 ? "" : "s"} replaced with a placeholder — handle separately.`);
       const tcCount = acceptTrackChanges(work);
       if (tcCount > 0) warnings.push(`Tracked changes detected and accepted (${tcCount} change${tcCount === 1 ? "" : "s"}).`);
       stripUnsupportedMarkup(work);
