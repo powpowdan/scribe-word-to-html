@@ -69,8 +69,37 @@
       onError: () => alert("Could not copy to clipboard.")
     });
 
+    // Mount the table editor onto the Live view. After each table action the
+    // Live view's HTML is flushed to the document model so the Code view stays
+    // in sync; the Live view itself is not re-rendered (source skip), so the
+    // user's selection and the DOM edits are preserved.
+    const tableEditorAPI = S.tableEditor.mountTableEditor({
+      liveRoot: liveView.element,
+      toolbar: $("tableToolbar"),
+      onChange: () => model.setHTML(liveView.read(), ChangeSource.live),
+      getOpts: () => ({
+        scope: $("scopeOpt") ? $("scopeOpt").checked : true,
+        preset: $("presetSelect") ? $("presetSelect").value : "none"
+      }),
+      getActiveClass: () =>
+        $("presetSelect") && $("presetSelect").value === "backgrounder" ? "bg-info" : "active",
+      ids: {
+        captionNumber: "captionNumber",
+        captionTitle: "captionTitle",
+        captionUnit: "captionUnit",
+        tableId: "tableId",
+        suggestIdBtn: "suggestIdBtn",
+        suggestCaptionBtn: "suggestCaptionBtn",
+        undoBtn: "undoBtn",
+        redoBtn: "redoBtn",
+        condensedOpt: "condensedOpt",
+        stripedOpt: "stripedOpt",
+        hoverOpt: "hoverOpt"
+      }
+    });
+
     // Debug handle for the acceptance check and power users. Not a public API.
-    window.__scribe = { model, liveView, codeView };
+    window.__scribe = { model, liveView, codeView, tableEditor: tableEditorAPI };
   }
 
   if (document.readyState === "loading") {

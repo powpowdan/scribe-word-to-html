@@ -8,6 +8,19 @@
 (function (S) {
   "use strict";
 
+  // Format every table in an HTML string (thead promotion, dark styling, WET
+  // classes, table-responsive wrap) so pasted/.docx tables arrive formatted,
+  // preserving the legacy renderCanvas UX. No-op if there are no tables.
+  function withTablesFormatted(html) {
+    if (!S.tableEditor || typeof S.tableEditor.formatTablesInContainer !== "function") {
+      return html;
+    }
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    S.tableEditor.formatTablesInContainer(container, { scope: true, trim: true });
+    return container.innerHTML;
+  }
+
   function wirePaste(liveView, model, refs, hooks) {
     const ChangeSource = refs.ChangeSource;
     const el = liveView.element;
@@ -29,7 +42,8 @@
       e.preventDefault();
 
       const result = S.cleanWordHtml(raw);
-      model.setHTML(result.html, ChangeSource.paste);
+      const formatted = withTablesFormatted(result.html);
+      model.setHTML(formatted, ChangeSource.paste);
       if (typeof hooks.onPaste === "function") hooks.onPaste({ warnings: result.warnings });
     });
   }
@@ -54,7 +68,7 @@
         window.mammoth
           .convertToHtml({ arrayBuffer: ev.target.result })
           .then((result) => {
-            const html = (result && result.value) || "";
+            const html = withTablesFormatted((result && result.value) || "");
             model.setHTML(html, ChangeSource.docx);
             if (typeof hooks.onDocx === "function") hooks.onDocx({ messages: result && result.messages });
           })

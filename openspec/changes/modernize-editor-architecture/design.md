@@ -122,6 +122,8 @@ The migration is sequenced as discrete increments; each is independently demonst
 
 **Rollback:** At any increment, abandoning the new editor leaves the legacy `word-to-html.html` fully functional. The new `editor/` directory can be removed wholesale without affecting the legacy file.
 
+> **Update (Increment 2):** Retirement was pulled forward to Increment 2 (ahead of full parity). `word-to-html.html` was archived to `legacy/word-to-html.html` rather than deleted, so the fallback remains one double-click away in the working tree. Recovery is trivial if a table bug surfaces when browser-testing resumes. Git history also retains the original path.
+
 ## Open Questions
 
 - **Document model internal representation** — hold the document as an HTML string, a parsed DOM tree, or both with a canonical direction? The spec mandates single-source-of-truth behavior but not representation. Resolvable at foundation-increment implementation without changing the spec.

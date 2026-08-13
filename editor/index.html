@@ -85,6 +85,75 @@
     </div>
   </main>
 
+  <!-- Table editor toolbar. Direct child of <body> so position:fixed isn't
+       broken by .card-surface's backdrop-filter. Hidden until a table cell is
+       clicked in the Live view. -->
+  <div id="tableToolbar" class="table-toolbar" hidden>
+    <div class="table-toolbar-row">
+      <label class="tb-field tb-field-narrow"><span>Table ID</span>
+        <span class="tb-suggest-group">
+          <input id="tableId" class="form-control form-control-sm" placeholder="tbl-1">
+          <button type="button" id="suggestIdBtn" class="btn btn-sm btn-outline-secondary tb-suggest-btn" title="Use suggested ID"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+        </span>
+      </label>
+      <label class="tb-field"><span>Table #</span><input id="captionNumber" class="form-control form-control-sm" placeholder="1"></label>
+      <label class="tb-field tb-field-wide"><span>Title</span>
+        <span class="tb-suggest-group">
+          <input id="captionTitle" class="form-control form-control-sm" placeholder="Departmental Results">
+          <button type="button" id="suggestCaptionBtn" class="btn btn-sm btn-outline-secondary tb-suggest-btn" title="Use suggested caption"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+        </span>
+      </label>
+      <label class="tb-field tb-field-mid"><span>Unit</span><input id="captionUnit" class="form-control form-control-sm" placeholder="$ amount or subtext"></label>
+    </div>
+    <div class="table-toolbar-row">
+      <span class="tb-label">Preset:</span>
+      <select id="presetSelect" class="form-select form-select-sm tb-preset">
+        <option value="none" selected>None</option>
+        <option value="financial">Financial</option>
+        <option value="backgrounder">Backgrounder</option>
+        <option value="french">French Numbers</option>
+      </select>
+      <label class="tb-check"><input id="scopeOpt" type="checkbox" checked> Scope</label>
+      <span class="tb-label tb-label-table">Table:</span>
+      <label class="tb-check"><input id="condensedOpt" type="checkbox"> Condensed</label>
+      <label class="tb-check"><input id="stripedOpt" type="checkbox"> Striped</label>
+      <label class="tb-check"><input id="hoverOpt" type="checkbox"> Hover</label>
+    </div>
+    <div class="table-toolbar-row">
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary" id="undoBtn" title="Undo" disabled><i class="fa-solid fa-rotate-left"></i></button>
+        <button type="button" class="btn btn-outline-secondary" id="redoBtn" title="Redo" disabled><i class="fa-solid fa-rotate-right"></i></button>
+        <button type="button" class="btn btn-outline-secondary" id="deselectBtn" title="Deselect cells"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary" id="theadBtn" title="Toggle header row">Header</button>
+        <button type="button" class="btn btn-outline-secondary" id="tfootBtn" title="Move to footer">To foot</button>
+        <button type="button" class="btn btn-outline-secondary" id="addFooterBtn" title="Add an empty footer row">+ Foot</button>
+        <button type="button" class="btn btn-outline-secondary" id="activeBtn" title="Toggle active row">Active</button>
+      </div>
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary" id="mergeRowBtn" title="Merge entire row">Merge row</button>
+        <button type="button" class="btn btn-outline-secondary" id="mergeBtn" title="Merge selected cells">Merge</button>
+        <button type="button" class="btn btn-outline-danger" id="deleteRowBtn" title="Delete row">Del row</button>
+        <button type="button" class="btn btn-outline-danger" id="deleteColBtn" title="Delete column">Del col</button>
+      </div>
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary" id="outdentBtn" title="Decrease indent"><i class="fa-solid fa-outdent"></i></button>
+        <button type="button" class="btn btn-outline-secondary" id="indentBtn" title="Increase indent"><i class="fa-solid fa-indent"></i></button>
+        <button type="button" class="btn btn-outline-secondary" id="boldBtn" title="Toggle bold"><i class="fa-solid fa-bold"></i></button>
+      </div>
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary" id="removePBtn" title="Remove <p> tags from selected cells">No &lt;p&gt;</button>
+        <button type="button" class="btn btn-outline-secondary" id="nbspBtn" title="Non-breaking spaces in selected cells">NBSP</button>
+      </div>
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary" id="leftAlignBtn" title="Align left"><i class="fa-solid fa-align-left"></i></button>
+        <button type="button" class="btn btn-outline-secondary" id="centerAlignBtn" title="Align center"><i class="fa-solid fa-align-center"></i></button>
+        <button type="button" class="btn btn-outline-secondary" id="rightAlignBtn" title="Align right"><i class="fa-solid fa-align-right"></i></button>
+      </div>
+    </div>
+  </div>
+
   <!-- Vendor libraries load first (classic scripts; work via file://). -->
   <script src="vendor/mammoth/mammoth.browser.js"></script>
   <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
@@ -93,6 +162,7 @@
        dependency order; main.js (entry) is last. -->
   <script src="src/document-model.js"></script>
   <script src="src/cleanup.js"></script>
+  <script src="src/table-editor.js"></script>
   <script src="src/code-view.js"></script>
   <script src="src/live-view.js"></script>
   <script src="src/sync.js"></script>

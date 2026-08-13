@@ -1,0 +1,334 @@
+import { describe, it, expect } from "vitest";
+import { loadScribe } from "./_load.js";
+
+// Regression coverage for every requirement in openspec/specs/table-editor/
+// spec.md, exercised against the lifted table-editor primitives. These pin the
+// lifted behavior to the same contract the legacy editor delivered.
+
+const win = loadScribe(["cleanup.js", "table-editor.js"]);
+const S = win.Scribe;
+const document = win.document;
+const T = S.tableEditor;
+
+function makeTable(html) {
+  const div = document.createElement("div");
+  div.innerHTML = html.trim();
+  return div.querySelector("table");
+}
+
+// ----- Requirement 1: Header rows use column-header cells -----
+describe("Requirement: Header rows use column-header cells", () => {
+  it("Word-supplied thead with td cells is normalized to th scope=col", () => {
+    const table = makeTable(
+      "<table><thead><tr><td>A</td><td>B</td></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>"
+    );
+    T.formatTableOnClean(table, { scope: true });
+    const theadCells = table.querySelectorAll("thead th");
+    expect(theadCells.length).toBe(2);
+    theadCells.forEach((c) => expect(c.getAttribute("scope")).toBe("col"));
+    expect(table.querySelector("thead td")).toBe(null);
+  });
+
+  it("first body row is promoted to thead when none exists, cells become th scope=col", () => {
+    const table = makeTable(
+      "<table><tbody><tr><td>H1</td><td>H2</td></tr><tr><td>1</td><td>2</td></tr></tbody></table>"
+    );
+    T.formatTableOnClean(table, { scope: true });
+    expect(table.querySelectorAll("thead tr").length).toBe(1);
+    const theadCells = table.querySelectorAll("thead th");
+    expect(theadCells.length).toBe(2);
+    theadCells.forEach((c) => expect(c.getAttribute("scope")).toBe("col"));
+  });
+});
+
+// ----- Requirement 2: Header rows carry dark styling -----
+describe("Requirement: Header rows carry dark styling", () => {
+  it("thead tr gets bg-dark text-white on format", () => {
+    const table = makeTable(
+      "<table><thead><tr><th>X</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table>"
+    );
+    T.formatTableOnClean(table);
+    const tr = table.querySelector("thead tr");
+    expect(tr.classList.contains("bg-dark")).toBe(true);
+    expect(tr.classList.contains("text-white")).toBe(true);
+  });
+});
+
+// ----- Requirement 3: Active toggle applies background only -----
+describe("Requirement: Active toggle applies background only", () => {
+  it("adds the active class without changing scope or bolding the cell", () => {
+    const table = makeTable(
+      "<table><thead><tr><th>H</th></tr></thead><tbody><tr><th scope=\"row\">k</th><td>v</td></tr></tbody></table>"
+    );
+    // Select a cell in the body row, then toggle active with the plain class.
+    const bodyRow = table.querySelector("tbody tr");
+    bodyRow.querySelector("td").classList.add("selected");
+    T.toggleActive(table, "active");
+
+    expect(bodyRow.classList.contains("active")).toBe(true);
+    // Leading cell scope is preserved.
+    expect(bodyRow.querySelector("th").getAttribute("scope")).toBe("row");
+    // No bold/normal-weight class or <strong> was added to cells.
+    expect(bodyRow.querySelector("strong")).toBe(null);
+    bodyRow.querySelectorAll("th, td").forEach((c) => {
+      expect(c.classList.contains("fnt-nrml")).toBe(false);
+    });
+  });
+
+  it("removing active clears the class and leaves weight/scope unchanged", () => {
+    const table = makeTable(
+      "<table><thead><tr><th>H</th></tr></thead><tbody><tr class=\"active\"><th scope=\"row\">k</th><td>v</td></tr></tbody></table>"
+    );
+    const bodyRow = table.querySelector("tbody tr");
+    bodyRow.querySelector("td").classList.add("selected");
+    T.toggleActive(table, "active"); // already active → toggles off
+    expect(bodyRow.classList.contains("active")).toBe(false);
+    expect(bodyRow.querySelector("th").getAttribute("scope")).toBe("row");
+  });
+});
+
+// ----- Requirement 4: Remove paragraphs from selected cells -----
+describe("Requirement: Remove paragraphs from selected cells", () => {
+  it("unwraps a single paragraph", () => {
+    const table = makeTable("<table><tbody><tr><td><p>Hello</p></td></tr></tbody></table>");
+    const cell = table.querySelector("td");
+    cell.classList.add("selected");
+    T.removeParagraphs(table);
+    expect(cell.innerHTML).toBe("Hello");
+  });
+
+  it("joins consecutive paragraphs with <br>", () => {
+    const table = makeTable("<table><tbody><tr><td><p>A</p><p>B</p></td></tr></tbody></table>");
+    const cell = table.querySelector("td");
+    cell.classList.add("selected");
+    T.removeParagraphs(table);
+    expect(cell.innerHTML).toBe("A<br>B");
+  });
+
+  it("unwraps a paragraph nested inside a list item", () => {
+    const table = makeTable("<table><tbody><tr><td><ul><li><p>item</p></li></ul></td></tr></tbody></table>");
+    const cell = table.querySelector("td");
+    cell.classList.add("selected");
+    T.removeParagraphs(table);
+    expect(cell.innerHTML).toBe("<ul><li>item</li></ul>");
+  });
+});
+
+// ----- Requirement 5: Non-breaking-space selected cells -----
+describe("Requirement: Non-breaking-space selected cells", () => {
+  it("replaces regular spaces with U+00A0 in cell text", () => {
+    const table = makeTable("<table><tbody><tr><td>FedDev Ontario</td></tr></tbody></table>");
+    table.querySelector("td").classList.add("selected");
+    T.nbsp(table);
+    expect(table.querySelector("td").textContent).toBe("FedDev\u00A0Ontario");
+    expect(table.querySelector("td").textContent.includes(" ")).toBe(false);
+  });
+
+  it("leaves spaces inside attribute values untouched", () => {
+    const table = makeTable('<table><tbody><tr><td><a title="x y">link</a></td></tr></tbody></table>');
+    table.querySelector("td").classList.add("selected");
+    T.nbsp(table);
+    expect(table.querySelector("a").getAttribute("title")).toBe("x y");
+  });
+});
+
+// ----- Requirement 6: Empty footer creation -----
+describe("Requirement: Empty footer creation", () => {
+  it("creates an empty spanning footer with no selection", () => {
+    const table = makeTable(
+      "<table><thead><tr><th>A</th><th>B</th><th>C</th></tr></thead><tbody><tr><td>1</td><td>2</td><td>3</td></tr></tbody></table>"
+    );
+    T.moveToFooter(table); // no selection
+    const tfoot = table.querySelector("tfoot");
+    expect(tfoot).not.toBe(null);
+    const td = tfoot.querySelector("td");
+    expect(td).not.toBe(null);
+    expect(td.getAttribute("colspan")).toBe("3");
+    expect(td.textContent.trim()).toBe("");
+    // No body content was moved.
+    expect(table.querySelectorAll("tbody tr").length).toBe(1);
+  });
+
+  it("does not duplicate a footer when one already exists and there is no selection", () => {
+    const table = makeTable(
+      "<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody><tfoot><tr><td colspan=\"2\">existing</td></tr></tfoot></table>"
+    );
+    T.moveToFooter(table); // no selection
+    expect(table.querySelectorAll("tfoot").length).toBe(1);
+    expect(table.querySelector("tfoot td").textContent).toBe("existing");
+  });
+
+  it("moves selected content into the footer when cells are selected", () => {
+    const table = makeTable(
+      "<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>"
+    );
+    table.querySelector("tbody td").classList.add("selected");
+    T.moveToFooter(table);
+    expect(table.querySelectorAll("tbody tr").length).toBe(0);
+    expect(table.querySelector("tfoot").textContent).toContain("1");
+  });
+});
+
+// ----- Requirement 7: Table-modifier class toggles -----
+describe("Requirement: Table-modifier class toggles", () => {
+  it("toggling a class on adds it to the table", () => {
+    const table = makeTable("<table><tbody><tr><td>x</td></tr></tbody></table>");
+    T.toggleModifier(table, "table-striped", true);
+    expect(table.classList.contains("table-striped")).toBe(true);
+  });
+
+  it("toggling a class off removes it from the table", () => {
+    const table = makeTable('<table class="table-hover"><tbody><tr><td>x</td></tr></tbody></table>');
+    T.toggleModifier(table, "table-hover", false);
+    expect(table.classList.contains("table-hover")).toBe(false);
+  });
+
+  it("the three modifiers are independent", () => {
+    const table = makeTable("<table><tbody><tr><td>x</td></tr></tbody></table>");
+    T.toggleModifier(table, "table-condensed", true);
+    T.toggleModifier(table, "table-striped", true);
+    expect(table.classList.contains("table-condensed")).toBe(true);
+    expect(table.classList.contains("table-striped")).toBe(true);
+    expect(table.classList.contains("table-hover")).toBe(false);
+  });
+});
+
+// ===== Increment 5 additions =====
+
+// ----- Undo/redo history -----
+describe("Requirement: Undo and redo history for table edits", () => {
+  it("records states and moves the pointer on undo/redo", () => {
+    const h = T.createTableHistory();
+    h.reset("a");
+    expect(h.canUndo).toBe(false);
+    expect(h.canRedo).toBe(false);
+
+    h.commit("b");
+    expect(h.canUndo).toBe(true);
+    expect(h.canRedo).toBe(false);
+
+    expect(h.undo()).toBe("a");
+    expect(h.canUndo).toBe(false);
+    expect(h.canRedo).toBe(true);
+
+    expect(h.redo()).toBe("b");
+    expect(h.canUndo).toBe(true);
+    expect(h.canRedo).toBe(false);
+  });
+
+  it("undo at the bound returns null (no earlier state)", () => {
+    const h = T.createTableHistory();
+    h.reset("a");
+    expect(h.undo()).toBe(null);
+  });
+
+  it("a new commit after undo drops the redo tail", () => {
+    const h = T.createTableHistory();
+    h.reset("a");
+    h.commit("b");
+    h.undo(); // back to "a"
+    h.commit("c"); // branch — "b" is discarded
+    expect(h.canRedo).toBe(false);
+    expect(h.redo()).toBe(null);
+    expect(h.undo()).toBe("a");
+  });
+});
+
+// ----- Delete column (colspan-aware) -----
+describe("Requirement: Delete selected columns", () => {
+  it("removes a single column across all rows", () => {
+    const table = makeTable(
+      "<table><tbody><tr><td>A</td><td>B</td><td>C</td></tr><tr><td>1</td><td>2</td><td>3</td></tr></tbody></table>"
+    );
+    // Select the middle column's cell in row 0 only -> column 1 deleted everywhere.
+    table.querySelector("tbody tr td:nth-child(2)").classList.add("selected");
+    T.deleteColumns(table);
+
+    const rows = table.querySelectorAll("tbody tr");
+    expect(rows[0].querySelectorAll("td, th").length).toBe(2);
+    expect(rows[1].querySelectorAll("td, th").length).toBe(2);
+    // Column 1 ("B" / "2") is gone; A, C / 1, 3 remain.
+    expect(table.textContent).not.toContain("B");
+    expect(table.textContent).not.toContain("2");
+    expect(table.textContent).toContain("A");
+    expect(table.textContent).toContain("C");
+  });
+
+  it("reduces a spanning cell's colspan instead of removing unrelated columns", () => {
+    const table = makeTable(
+      "<table><tbody>" +
+        "<tr><td colspan=\"3\">spanned</td></tr>" +
+        "<tr><td>A</td><td>B</td><td>C</td></tr>" +
+        "</tbody></table>"
+    );
+    // Select B (col 1) in the second row.
+    const secondRowCells = table.querySelectorAll("tbody tr:nth-child(2) td");
+    secondRowCells[1].classList.add("selected");
+    T.deleteColumns(table);
+
+    const spanning = table.querySelector("tbody tr:first-child td");
+    expect(spanning.getAttribute("colspan")).toBe("2"); // 3 - 1 overlap
+    const remainingSecondRow = table.querySelectorAll("tbody tr:nth-child(2) td");
+    expect(remainingSecondRow.length).toBe(2); // A and C survive; B removed
+    expect(remainingSecondRow[0].textContent).toBe("A");
+    expect(remainingSecondRow[1].textContent).toBe("C");
+  });
+});
+
+// ----- Add empty footer row -----
+describe("Requirement: Dedicated add-empty-footer-row action", () => {
+  it("creates an empty spanning footer row when no footer exists", () => {
+    const table = makeTable(
+      "<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>"
+    );
+    T.addEmptyFooterRow(table);
+    const tfoot = table.querySelector("tfoot");
+    expect(tfoot).not.toBe(null);
+    const td = tfoot.querySelector("tr > td");
+    expect(td.getAttribute("colspan")).toBe("2");
+    expect(td.textContent.trim()).toBe("");
+  });
+
+  it("always adds a new row, even with a selection present and even when a footer exists", () => {
+    const table = makeTable(
+      "<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody><tfoot><tr><td colspan=\"2\">existing</td></tr></tfoot></table>"
+    );
+    table.querySelector("tbody td").classList.add("selected");
+    T.addEmptyFooterRow(table);
+    // A NEW empty row was added alongside the existing one; selected content not moved.
+    expect(table.querySelectorAll("tfoot tr").length).toBe(2);
+    expect(table.querySelectorAll("tbody tr").length).toBe(1); // body intact
+    expect(table.querySelector("tbody td").textContent).toBe("1"); // selection not moved
+  });
+});
+
+// ----- ID/caption suggestions -----
+describe("Requirement: Suggested table IDs and captions", () => {
+  function context() {
+    const root = document.createElement("div");
+    root.innerHTML =
+      '<h2>Funding Results</h2>' +
+      '<div class="table-responsive"><table id="t1"><tbody><tr><td>a</td></tr></tbody></table></div>' +
+      '<h3>Detail breakdown</h3>' +
+      '<div class="table-responsive"><table id="t2"><tbody><tr><td>b</td></tr></tbody></table></div>';
+    return root;
+  }
+
+  it("suggests a position-based table id", () => {
+    const root = context();
+    expect(T.suggestTableId(root, root.querySelector("#t1"))).toBe("tbl-1");
+    expect(T.suggestTableId(root, root.querySelector("#t2"))).toBe("tbl-2");
+  });
+
+  it("suggests a caption from the nearest preceding heading", () => {
+    const root = context();
+    expect(T.suggestCaptionFromContext(root, root.querySelector("#t1"))).toBe("Funding Results");
+    expect(T.suggestCaptionFromContext(root, root.querySelector("#t2"))).toBe("Detail breakdown");
+  });
+
+  it("returns an empty caption when no preceding heading exists", () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<div class="table-responsive"><table><tbody><tr><td>x</td></tr></tbody></table></div>';
+    expect(T.suggestCaptionFromContext(root, root.querySelector("table"))).toBe("");
+  });
+});

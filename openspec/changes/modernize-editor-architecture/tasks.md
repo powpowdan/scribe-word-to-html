@@ -19,12 +19,12 @@
 
 ## 2. Table editor lift — preserves the `table-editor` capability
 
-- [ ] 2.1 Extract Scribe's existing table toolbar logic from the legacy IIFE into `src/table-editor.js`
-- [ ] 2.2 Bind the table module to the document model (snapshot a table fragment, apply edits back on commit)
-- [ ] 2.3 Preserve existing behaviors: header-row promotion and styling, active toggle, No-`<p>`, NBSP-in-cell, move-to-footer (with empty-footer-when-no-selection), table-modifier class toggles
-- [ ] 2.4 Carry over caption fields (Table #, Title, Unit)
-- [ ] 2.5 Regression-check every scenario in `openspec/specs/table-editor/spec.md` against the lifted module
-- [ ] 2.6 Decision point: retire `word-to-html.html` now, or defer until a later increment
+- [x] 2.1 Extract Scribe's existing table toolbar logic from the legacy IIFE into `src/table-editor.js`
+- [x] 2.2 Bind the table module to the document model (snapshot a table fragment, apply edits back on commit)
+- [x] 2.3 Preserve existing behaviors: header-row promotion and styling, active toggle, No-`<p>`, NBSP-in-cell, move-to-footer (with empty-footer-when-no-selection), table-modifier class toggles
+- [x] 2.4 Carry over caption fields (Table #, Title, Unit)
+- [x] 2.5 Regression-check every scenario in `openspec/specs/table-editor/spec.md` against the lifted module
+- [x] 2.6 Decision point: retire `word-to-html.html` now, or defer until a later increment *(retired at Inc 2: archived to `legacy/word-to-html.html`; README updated)*
 
 ## 3. QA/Activity panel — `qa-panel` capability
 
@@ -47,13 +47,13 @@
 
 ## 5. Table editor enhancements — `table-editor` delta
 
-- [ ] 5.1 Add undo/redo history with discrete entries and disabled-state reflection on the controls
-- [ ] 5.2 Add delete-column action, colspan-aware
-- [ ] 5.3 Add a dedicated add-empty-footer-row action (distinct from move-to-footer)
-- [ ] 5.4 Add ID and caption suggestions derived from document context; optional one-tap accept
-- [ ] 5.5 Add complex scoping mode: select parent header, associate/disassociate data cells, suspend ordinary editing while active
-- [ ] 5.6 Add financial-table numeric right-alignment option
-- [ ] 5.7 Add French-number-format option (comma decimals, narrow-nbsp thousands separators)
+- [x] 5.1 Add undo/redo history with discrete entries and disabled-state reflection on the controls
+- [x] 5.2 Add delete-column action, colspan-aware
+- [x] 5.3 Add a dedicated add-empty-footer-row action (distinct from move-to-footer)
+- [x] 5.4 Add ID and caption suggestions derived from document context; optional one-tap accept
+- [ ] 5.5 Add complex scoping mode: select parent header, associate/disassociate data cells, suspend ordinary editing while active *(DEFERRED — risky flagship; its own focused increment)*
+- [x] 5.6 Add financial-table numeric right-alignment option *(delivered via the Financial preset dropdown in Inc 2; toggle-checkbox UX variant skipped as redundant)*
+- [x] 5.7 Add French-number-format option (comma decimals, narrow-nbsp thousands separators) *(delivered via the French Numbers preset dropdown in Inc 2; toggle-checkbox UX variant skipped as redundant)*
 
 ## 6. Code-view power features — `code-view-power-features` capability
 
