@@ -66,11 +66,11 @@
 
 ## 7. WYSIWYG formatting toolbar — `wysiwyg-formatting` capability
 
-- [ ] 7.1 Add bold and italic toggles that reflect active state at the cursor
-- [ ] 7.2 Add ordered and unordered list controls
-- [ ] 7.3 Add indent and outdent controls
-- [ ] 7.4 Add block-format selector (paragraph, h1–h6)
-- [ ] 7.5 Add create-link control
+- [x] 7.1 Add bold and italic toggles that reflect active state at the cursor
+- [x] 7.2 Add ordered and unordered list controls
+- [x] 7.3 Add indent and outdent controls
+- [x] 7.4 Add block-format selector (paragraph, h1–h6)
+- [x] 7.5 Add create-link control
 
 ## 8. Polish — recovery, toasts, onboarding
 

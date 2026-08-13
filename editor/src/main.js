@@ -169,6 +169,19 @@
     }
     model.subscribe(refreshOnboarding);
     refreshOnboarding();
+
+    // WYSIWYG formatting toolbar for the Live view (bold/italic/lists/indent/
+    // block-format/link). onChange flushes the Live view into the model so the
+    // Code view stays live (mousedown preventDefault keeps focus in Live, so
+    // the normal blur-sync would not fire).
+    if (S.wysiwyg && $("wysiwygToolbar")) {
+      S.wysiwyg.mountWysiwyg({
+        liveRoot: liveView.element,
+        toolbar: $("wysiwygToolbar"),
+        blockSelect: $("blockFormatSelect"),
+        onChange: () => model.setHTML(liveView.read(), ChangeSource.live)
+      });
+    }
   }
 
   if (document.readyState === "loading") {

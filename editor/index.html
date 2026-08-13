@@ -61,6 +61,30 @@
               <h2 class="card-title mb-0"><i class="fa-solid fa-table-list me-2 text-primary"></i>Live view</h2>
               <span class="text-muted small">contentEditable — paste or edit visually; syncs to Code on blur</span>
             </div>
+            <div class="wysiwyg-toolbar" id="wysiwygToolbar" role="toolbar" aria-label="Live view formatting">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="bold" title="Bold (Ctrl+B)" aria-pressed="false"><i class="fa-solid fa-bold"></i></button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="italic" title="Italic (Ctrl+B)" aria-pressed="false"><i class="fa-solid fa-italic"></i></button>
+              <span class="wysiwyg-divider"></span>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="insertUnorderedList" title="Bulleted list"><i class="fa-solid fa-list-ul"></i></button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="insertOrderedList" title="Numbered list"><i class="fa-solid fa-list-ol"></i></button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="outdent" title="Decrease indent"><i class="fa-solid fa-outdent"></i></button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="indent" title="Increase indent"><i class="fa-solid fa-indent"></i></button>
+              <span class="wysiwyg-divider"></span>
+              <label class="wysiwyg-block">
+                <span class="wb-inv">Block format</span>
+                <select id="blockFormatSelect" class="form-select form-select-sm" title="Block format">
+                  <option value="">Block…</option>
+                  <option value="p">Paragraph</option>
+                  <option value="h1">Heading 1</option>
+                  <option value="h2">Heading 2</option>
+                  <option value="h3">Heading 3</option>
+                  <option value="h4">Heading 4</option>
+                  <option value="h5">Heading 5</option>
+                  <option value="h6">Heading 6</option>
+                </select>
+              </label>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="createLink" title="Create link (Ctrl+K)"><i class="fa-solid fa-link"></i></button>
+            </div>
             <div id="onboardingHint" class="onboarding-hint">
               <i class="fa-solid fa-feather-pointed onboarding-icon"></i>
               <div>
@@ -225,6 +249,7 @@
   <script src="src/code-view-tools.js"></script>
   <script src="src/toasts.js"></script>
   <script src="src/document-recovery.js"></script>
+  <script src="src/wysiwyg.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>

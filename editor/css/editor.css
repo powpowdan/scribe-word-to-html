@@ -404,6 +404,35 @@ body {
   margin-top: 1rem;
 }
 
+/* ---------- WYSIWYG formatting toolbar (Live view) ---------- */
+.wysiwyg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem;
+  margin-bottom: 0.6rem;
+  background: #f4f6ff;
+  border: 1px solid #dce7ff;
+  border-radius: 0.6rem;
+}
+.wysiwyg-toolbar .btn { line-height: 1; }
+.wysiwyg-toolbar .btn.active,
+.wysiwyg-toolbar .btn[aria-pressed="true"] {
+  background: var(--scribe-blue);
+  color: #fff;
+  border-color: var(--scribe-blue);
+}
+.wysiwyg-divider {
+  display: inline-block;
+  width: 1px;
+  align-self: stretch;
+  background: #c7d2fe;
+  margin: 0 0.15rem;
+}
+.wysiwyg-block { display: inline-flex; align-items: center; }
+.wysiwyg-block .form-select { width: auto; min-width: 8rem; }
+
 /* ---------- Onboarding empty-state ---------- */
 .onboarding-hint {
   display: flex;
