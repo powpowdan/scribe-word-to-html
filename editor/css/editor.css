@@ -1,0 +1,202 @@
+/* Scribe modular editor styling. Ports the legacy Scribe visual identity
+ * (gradient background, card surfaces) and adds the visible image-placeholder
+ * box required by the image-placeholders spec ("Image is replaced by a visible
+ * canvas placeholder"). */
+
+:root {
+  --scribe-blue: #0d6efd;
+  --scribe-border: rgba(13, 110, 253, 0.12);
+  --scribe-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(13, 110, 253, 0.14), transparent 30%),
+    linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
+  min-height: 100vh;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* ---------- Nav ---------- */
+.app-nav {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 0.5rem;
+}
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.app-brand-icon {
+  font-size: 2.1rem;
+  color: var(--scribe-blue);
+}
+.app-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0a3d8f;
+  margin: 0;
+}
+.app-subtitle {
+  font-size: 0.85rem;
+  color: #8892a0;
+  font-weight: 400;
+  margin-left: 0.4rem;
+}
+.app-tagline {
+  margin: 0;
+  color: #8892a0;
+  font-size: 0.9rem;
+}
+
+/* ---------- Shell ---------- */
+.app-shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}
+
+/* ---------- Cards ---------- */
+.card-surface {
+  border: 1px solid var(--scribe-border);
+  box-shadow: var(--scribe-shadow);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+}
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1f2a44;
+  margin: 0 0 0.75rem;
+}
+
+/* ---------- Left rail ---------- */
+.rail-heading {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1f2a44;
+  margin: 0 0 0.4rem;
+}
+.rail-steps {
+  font-size: 0.85rem;
+  color: #4a5673;
+  padding-left: 1.1rem;
+  margin: 0;
+}
+.rail-steps li {
+  margin-bottom: 0.4rem;
+}
+
+/* ---------- Editor surfaces ---------- */
+.editor-surface {
+  background: #ffffff;
+  border: 1px solid #dce7ff;
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem;
+  min-height: 60px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+  outline: none;
+}
+.editor-surface:focus {
+  border-color: var(--scribe-blue);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.16);
+}
+.editor-surface:empty::before {
+  content: attr(data-placeholder);
+  color: #8892a0;
+  pointer-events: none;
+}
+.live-surface {
+  min-height: 340px;
+  line-height: 1.6;
+}
+.live-surface :where(h1, h2, h3, h4, h5, h6) {
+  margin: 0.8em 0 0.4em;
+  font-weight: 600;
+  color: #1f2a44;
+}
+.live-surface p {
+  margin: 0 0 0.6em;
+}
+.live-surface table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+}
+.live-surface th,
+.live-surface td {
+  border: 1px solid #c9d4ea;
+  padding: 0.35em 0.55em;
+  vertical-align: top;
+}
+.live-surface thead th {
+  background: #212529;
+  color: #fff;
+}
+
+/* ---------- Image placeholder (image-placeholders spec scenario 1) ---------- */
+.live-surface .img-placeholder {
+  display: inline-block;
+  padding: 0.5em 0.8em;
+  margin: 0 0.25em;
+  border: 2px dashed #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+  border-radius: 0.4em;
+  font-family: monospace;
+  font-size: 0.85em;
+}
+
+/* ---------- Code view ---------- */
+.code-textarea {
+  width: 100%;
+  background: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #1e293b;
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem;
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+}
+.code-textarea:focus {
+  border-color: var(--scribe-blue);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
+}
+
+/* ---------- Copy button ---------- */
+#copyBtn {
+  transition: all 0.25s ease;
+  font-weight: 600;
+  border-radius: 999px;
+}
+#copyBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(13, 110, 253, 0.16);
+}
+.copy-success {
+  background: linear-gradient(135deg, #198754 0%, #20c997 100%) !important;
+  border-color: #198754 !important;
+  color: #fff !important;
+  box-shadow: 0 10px 24px rgba(25, 135, 84, 0.24) !important;
+}
+
+/* ---------- Warnings ---------- */
+.warning-banner .alert {
+  border-radius: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.warning-banner .alert:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- Rendered canvas helpers for output clarity ---------- */
+.canvas-hint {
+  color: #8892a0;
+  font-size: 0.85rem;
+}

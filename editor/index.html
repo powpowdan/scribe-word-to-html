@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scribe: Word to HTML (modular editor)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Convert Word documents into clean Canada.ca-ready HTML">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'none'; media-src 'self' data: blob:; object-src 'none'; frame-src 'none'; child-src 'self'; worker-src 'none'; form-action 'none'; base-uri 'none'; manifest-src 'none';">
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="css/editor.css">
+</head>
+<body>
+  <nav class="app-nav">
+    <div class="app-brand">
+      <i class="fa-solid fa-feather-pointed app-brand-icon"></i>
+      <div>
+        <h1 class="app-title">Scribe: Word to HTML <small class="app-subtitle">modular editor</small></h1>
+        <p class="app-tagline">Paste Word content. Edit in Live or Code. Copy clean Canada.ca HTML.</p>
+      </div>
+    </div>
+  </nav>
+
+  <main class="app-shell">
+    <div class="row g-4">
+      <aside class="col-lg-3">
+        <div class="card card-surface">
+          <div class="card-body">
+            <h2 class="card-title"><i class="fa-solid fa-file-arrow-up me-2 text-primary"></i>Import</h2>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold" for="docxFile">Upload .docx</label>
+              <input id="docxFile" class="form-control form-control-sm" type="file" accept=".docx">
+              <small class="text-muted">Converted by mammoth. Paste (below) is the primary path.</small>
+            </div>
+
+            <hr>
+            <h3 class="rail-heading">How it works</h3>
+            <ol class="rail-steps">
+              <li><strong>Paste</strong> Word content into the Live view (Ctrl+V). It is cleaned automatically.</li>
+              <li><strong>Edit</strong> in Live (visual) or Code (HTML). They sync on blur.</li>
+              <li><strong>Copy HTML</strong> — placeholders become <code>&lt;!-- image: ... --&gt;</code> comments in the output.</li>
+            </ol>
+
+            <div id="warningBanner" class="warning-banner" style="display:none;"></div>
+
+            <div class="alert alert-light py-2 small mt-3 mb-0 border">
+              <i class="fa-solid fa-circle-info me-2 text-primary"></i>
+              <strong>Double-click opens it.</strong> No server or build step needed —
+              this editor loads entirely from local files. Work offline.
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="col-lg-9">
+        <div class="card card-surface mb-3">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h2 class="card-title mb-0"><i class="fa-solid fa-table-list me-2 text-primary"></i>Live view</h2>
+              <span class="text-muted small">contentEditable — paste or edit visually; syncs to Code on blur</span>
+            </div>
+            <div id="liveView" class="editor-surface live-surface" contenteditable="true"
+                 data-placeholder="Ctrl+V to paste from Word, or start typing..."></div>
+          </div>
+        </div>
+
+        <div class="card card-surface">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <h2 class="card-title mb-0"><i class="fa-solid fa-code me-2 text-primary"></i>Code view</h2>
+                <small class="text-muted">Raw HTML — typing/pasting here becomes the document on blur (no cleanup).</small>
+              </div>
+              <button id="copyBtn" type="button" class="btn btn-warning px-4">
+                <i class="fa-regular fa-clone me-2"></i><span>Copy HTML</span>
+              </button>
+            </div>
+            <textarea id="codeView" class="code-textarea" rows="12" spellcheck="false"
+                      placeholder="Cleaned HTML appears here after you paste, or type/paste raw HTML..."></textarea>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Vendor libraries load first (classic scripts; work via file://). -->
+  <script src="vendor/mammoth/mammoth.browser.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Editor modules: classic scripts sharing window.Scribe. Load in
+       dependency order; main.js (entry) is last. -->
+  <script src="src/document-model.js"></script>
+  <script src="src/cleanup.js"></script>
+  <script src="src/code-view.js"></script>
+  <script src="src/live-view.js"></script>
+  <script src="src/sync.js"></script>
+  <script src="src/entry.js"></script>
+  <script src="src/copy.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>

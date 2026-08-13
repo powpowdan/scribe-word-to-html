@@ -1,0 +1,16 @@
+{
+  "name": "scribe-editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Scribe modular editor (Word to Canada.ca HTML). Runtime is static ES modules; node is only for running tests.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:update": "vitest run --update"
+  },
+  "devDependencies": {
+    "happy-dom": "^13.10.1",
+    "vitest": "^1.6.1"
+  }
+}
