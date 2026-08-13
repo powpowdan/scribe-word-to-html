@@ -1,26 +1,12 @@
 ## Purpose
 
-Read-only observation of the document that reports editing activity, document structure, tag/selector counts, an overall health score, and items the author should review.
+Read-only observation of the document that reports its structure (a navigable heading outline), tag/selector counts, and a pre-publish list of items the author should review. (The activity log and health-score badge from the original proposal were descoped.)
 
 ## ADDED Requirements
 
-### Requirement: Activity log records editor actions
-
-The panel SHALL display a chronological log of editor actions (imports, command runs, table edits, and similar), each with a human-readable description. The log SHALL update live as actions occur.
-
-#### Scenario: Import is logged
-
-- **WHEN** the user pastes a Word document and it is cleaned
-- **THEN** a new log entry describing the import appears at the top of the log
-
-#### Scenario: Command run is logged
-
-- **WHEN** the user runs the Add IDs command
-- **THEN** a new log entry describing the command and its outcome appears
-
 ### Requirement: Document outline lists headings in order
 
-The panel SHALL display an outline of the document built from its headings (`h1`–`h6`), preserving nesting order. Selecting an outline entry SHALL navigate to the corresponding heading in the editor.
+The panel SHALL display an outline of the document built from its real headings (`h1`–`h6`), preserving nesting order. Headings that belong to a generated "On this page" nav SHALL be excluded. Selecting an outline entry whose heading has an id SHALL navigate to that heading in the editor.
 
 #### Scenario: Outline reflects document structure
 
@@ -32,9 +18,14 @@ The panel SHALL display an outline of the document built from its headings (`h1`
 - **WHEN** the document contains no headings
 - **THEN** the outline area shows a message indicating no headings were found
 
+#### Scenario: Generated "On this page" heading is excluded
+
+- **WHEN** the document contains a `nav.on-this-page` with its own `<h2>On this page</h2>`
+- **THEN** that heading does not appear in the outline
+
 ### Requirement: Tag and selector counts report document composition
 
-The panel SHALL let the user enter one or more tags or CSS selectors and report how many times each matches in the document. The panel SHALL support saving and recalling count presets.
+The panel SHALL let the user enter one or more tags or CSS selectors (one per line) and report how many times each matches in the document. Invalid selectors SHALL be reported as invalid rather than crashing the count. The panel SHALL support saving and recalling count presets (persisted to browser local storage).
 
 #### Scenario: Counting a tag
 
@@ -46,40 +37,41 @@ The panel SHALL let the user enter one or more tags or CSS selectors and report 
 - **WHEN** the user enters `.alert` and runs the count
 - **THEN** the panel reports the number of elements matching the `.alert` selector
 
+#### Scenario: Invalid selector is reported, not thrown
+
+- **WHEN** the user enters a syntactically invalid selector
+- **THEN** the count for that line reports an error indicator and the other lines still count normally
+
 #### Scenario: Presets can be saved and recalled
 
-- **WHEN** the user saves the current set of entries as a preset and later recalls it
+- **WHEN** the user saves the current set of entries as a named preset and later recalls it
 - **THEN** the entry area is repopulated with the saved set
 
-### Requirement: Health score summarizes document quality
+### Requirement: Items to review surface detected pre-publish issues
 
-The panel SHALL compute and display a single health score reflecting the document's structural quality (for example, presence of heading hierarchy, presence of IDs on key elements, absence of known issues). The score SHALL be visible from the main editor surface without opening the panel.
-
-#### Scenario: Score reflects a clean document
-
-- **WHEN** the document has a coherent heading hierarchy, IDs on headings, and no detected issues
-- **THEN** the health score reads as a high/good value
-
-#### Scenario: Score reflects detected problems
-
-- **WHEN** the document has skipped heading levels or headings without IDs
-- **THEN** the health score reads lower than the clean case
-
-#### Scenario: Score is visible without opening the panel
-
-- **WHEN** the panel is closed
-- **THEN** the current health score remains visible on the main editor surface
-
-### Requirement: Items to review surface detected issues
-
-The panel SHALL list specific items in the document that the author should review (for example, skipped heading levels, tables without IDs, missing non-breaking spaces). Each item SHALL be navigable to its location in the document.
+The panel SHALL list specific items in the document that the author should review before publishing, drawn from at least: skipped heading levels, headings without an id, tables without an id, leftover image placeholders, empty headings, and links with an empty or placeholder href. Each item that has a target id SHALL be navigable to its location in the document.
 
 #### Scenario: Skipped heading level is listed
 
 - **WHEN** the document jumps from `<h2>` to `<h4>` with no `<h3>`
 - **THEN** the review list contains an entry describing the skipped level
 
+#### Scenario: Heading without an id is listed
+
+- **WHEN** the document contains a heading with no `id`
+- **THEN** the review list contains an entry flagging it
+
+#### Scenario: Leftover image placeholder is listed
+
+- **WHEN** the document still contains an `img-placeholder` figure
+- **THEN** the review list contains an entry reminding the author to handle the image
+
+#### Scenario: Clean document reports no issues
+
+- **WHEN** the document has a coherent heading hierarchy, ids on headings, and none of the flagged conditions
+- **THEN** the review list shows that no issues were found
+
 #### Scenario: Review item navigates to its location
 
-- **WHEN** the user selects a review item
-- **THEN** the editor scrolls to and focuses the corresponding location in the document
+- **WHEN** the user selects a review item that has a target id
+- **THEN** the editor scrolls the corresponding element into view

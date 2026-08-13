@@ -1,0 +1,296 @@
+// Document report panel — read-only observation of the document: a navigable
+// heading outline, a tag/selector counter (with save/recall presets), and an
+// issues-to-review lint list. The activity log and health-score badge from the
+// original qa-panel spec were dropped per scope.
+//
+// Pure functions (buildOutline / countSelectors / detectIssues) operate on a
+// root element and are headlessly testable; mountQaPanel() wires them to the
+// document model + a Live view (for click-to-jump navigation).
+//
+// Classic script — attaches to window.Scribe.
+
+(function (S) {
+  "use strict";
+
+  const PRESET_KEY = "scribe.countPresets.v1";
+
+  function isRealHeading(h) {
+    // Skip headings that belong to a generated "On this page" nav.
+    return !h.closest("nav.on-this-page");
+  }
+
+  // Flat list of { level, id, text } in document order.
+  function buildOutline(root) {
+    const out = [];
+    root.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((h) => {
+      if (!isRealHeading(h)) return;
+      out.push({
+        level: parseInt(h.tagName.charAt(1), 10),
+        id: h.id || null,
+        text: h.textContent.trim()
+      });
+    });
+    return out;
+  }
+
+  // [{ selector, count, error? }] — invalid selectors are reported, not thrown.
+  function countSelectors(root, selectors) {
+    return (selectors || []).map((sel) => {
+      const s = String(sel == null ? "" : sel).trim();
+      if (!s) return { selector: "", count: 0, empty: true };
+      try {
+        return { selector: s, count: root.querySelectorAll(s).length };
+      } catch (e) {
+        return { selector: s, count: 0, error: true };
+      }
+    });
+  }
+
+  // Canada.ca publishing lint. Each issue: { type, message, id? } (id used for
+  // click-to-jump navigation when available).
+  function detectIssues(root) {
+    const issues = [];
+
+    // Heading hierarchy + ids + empty headings.
+    let prevLevel = 0;
+    root.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((h) => {
+      if (!isRealHeading(h)) return;
+      const level = parseInt(h.tagName.charAt(1), 10);
+      const text = h.textContent.trim();
+      if (!text) {
+        issues.push({ type: "empty-heading", message: "Empty heading", id: h.id || null });
+      }
+      if (prevLevel && level > prevLevel + 1) {
+        issues.push({
+          type: "skipped-level",
+          message: "Skipped heading level (h" + prevLevel + " \u2192 h" + level + ")" + (text ? ": \"" + text + "\"" : ""),
+          id: h.id || null
+        });
+      }
+      if (!h.id) {
+        issues.push({ type: "heading-no-id", message: "Heading without an id" + (text ? ": \"" + text + "\"" : ""), id: null });
+      }
+      prevLevel = level;
+    });
+
+    // Tables without ids.
+    root.querySelectorAll("table").forEach((t) => {
+      if (!t.id) issues.push({ type: "table-no-id", message: "Table without an id", id: null });
+    });
+
+    // Leftover image placeholders.
+    const ph = root.querySelectorAll("figure.img-placeholder, .img-placeholder");
+    if (ph.length) {
+      issues.push({
+        type: "image-placeholder",
+        message: ph.length + " image placeholder" + (ph.length === 1 ? "" : "s") + " still present \u2014 handle the image" + (ph.length === 1 ? "" : "s"),
+        id: ph[0].id || null
+      });
+    }
+
+    // Links with empty / placeholder href.
+    root.querySelectorAll("a").forEach((a) => {
+      const href = (a.getAttribute("href") || "").trim();
+      if (!href || href === "#") {
+        const label = a.textContent.trim();
+        issues.push({ type: "bad-link", message: "Link with empty or placeholder href" + (label ? ": \"" + label + "\"" : ""), id: a.id || null });
+      }
+    });
+
+    return issues;
+  }
+
+  // ---- Mounter ----
+  // config: { model, liveRoot, outlineEl, issuesEl, countInput, countBtn,
+  //           countResults, presetSelect, presetSaveBtn, presetRecallBtn,
+  //           toaster, storage }
+  function mountQaPanel(config) {
+    config = config || {};
+    const model = config.model;
+    const liveRoot = config.liveRoot;
+    const outlineEl = config.outlineEl;
+    const issuesEl = config.issuesEl;
+    const countInput = config.countInput;
+    const countBtn = config.countBtn;
+    const countResults = config.countResults;
+    const presetSelect = config.presetSelect;
+    const presetSaveBtn = config.presetSaveBtn;
+    const presetRecallBtn = config.presetRecallBtn;
+    const toaster = config.toaster;
+    const storage = config.storage || (typeof localStorage !== "undefined" ? localStorage : null);
+
+    function parseModel() {
+      const c = document.createElement("div");
+      c.innerHTML = model ? model.getHTML() : "";
+      return c;
+    }
+
+    function navigateTo(id) {
+      if (!liveRoot || !id) return false;
+      let el;
+      try {
+        el = liveRoot.querySelector("#" + (window.CSS && CSS.escape ? CSS.escape(id) : id));
+      } catch (e) {
+        el = liveRoot.querySelector("#" + id);
+      }
+      if (el && el.scrollIntoView) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return true;
+      }
+      return false;
+    }
+
+    function renderOutline() {
+      if (!outlineEl) return;
+      const items = buildOutline(parseModel());
+      outlineEl.innerHTML = "";
+      if (!items.length) {
+        outlineEl.innerHTML = '<p class="qa-empty">No headings.</p>';
+        return;
+      }
+      const rootList = document.createElement("ul");
+      const stack = [{ level: 0, ul: rootList }];
+      items.forEach((it) => {
+        while (stack.length > 1 && stack[stack.length - 1].level >= it.level) stack.pop();
+        const li = document.createElement("li");
+        li.className = "qa-outline-l" + it.level;
+        const a = document.createElement("a");
+        a.textContent = it.text || "(empty heading)";
+        if (it.id) {
+          a.href = "#" + it.id;
+          a.addEventListener("click", (e) => { e.preventDefault(); navigateTo(it.id); });
+        } else {
+          a.className = "qa-no-nav";
+        }
+        li.appendChild(a);
+        stack[stack.length - 1].ul.appendChild(li);
+        const sub = document.createElement("ul");
+        li.appendChild(sub);
+        stack.push({ level: it.level, ul: sub });
+      });
+      rootList.querySelectorAll("ul").forEach((u) => { if (!u.children.length) u.remove(); });
+      outlineEl.appendChild(rootList);
+    }
+
+    function renderIssues() {
+      if (!issuesEl) return;
+      const issues = detectIssues(parseModel());
+      issuesEl.innerHTML = "";
+      if (!issues.length) {
+        issuesEl.innerHTML = '<p class="qa-ok"><i class="fa-solid fa-circle-check"></i> No issues found.</p>';
+        return;
+      }
+      const ul = document.createElement("ul");
+      ul.className = "qa-issues";
+      issues.forEach((iss) => {
+        const li = document.createElement("li");
+        li.className = "qa-issue qa-" + iss.type;
+        li.textContent = iss.message;
+        if (iss.id) {
+          li.className += " qa-clickable";
+          li.addEventListener("click", () => navigateTo(iss.id));
+        }
+        ul.appendChild(li);
+      });
+      issuesEl.appendChild(ul);
+    }
+
+    function runCounts() {
+      if (!countResults) return;
+      const lines = countInput && countInput.value
+        ? countInput.value.split(/\n+/).map((s) => s.trim()).filter(Boolean)
+        : [];
+      const results = countSelectors(parseModel(), lines);
+      countResults.innerHTML = "";
+      if (!results.length) {
+        countResults.innerHTML = '<p class="qa-empty">Enter tags or selectors above, then Count.</p>';
+        return;
+      }
+      results.forEach((r) => {
+        const row = document.createElement("div");
+        row.className = "qa-count-row";
+        const prefix = r.error ? "\u26a0 " : "";
+        const label = r.empty ? "(empty line)" : r.selector;
+        row.textContent = prefix + label + " = " + r.count;
+        if (r.error) row.classList.add("qa-count-error");
+        countResults.appendChild(row);
+      });
+    }
+
+    // ---- Presets (localStorage) ----
+    function readPresets() {
+      if (!storage) return {};
+      try { return JSON.parse(storage.getItem(PRESET_KEY) || "{}"); } catch (e) { return {}; }
+    }
+    function writePresets(obj) {
+      if (!storage) return;
+      try { storage.setItem(PRESET_KEY, JSON.stringify(obj)); } catch (e) {}
+    }
+    function refreshPresetSelect() {
+      if (!presetSelect) return;
+      const presets = readPresets();
+      presetSelect.innerHTML = "";
+      const names = Object.keys(presets).sort();
+      if (!names.length) {
+        const o = document.createElement("option");
+        o.value = "";
+        o.textContent = "(no presets)";
+        presetSelect.appendChild(o);
+        return;
+      }
+      names.forEach((name) => {
+        const o = document.createElement("option");
+        o.value = name;
+        o.textContent = name;
+        presetSelect.appendChild(o);
+      });
+    }
+    if (presetSaveBtn) {
+      presetSaveBtn.addEventListener("click", () => {
+        const name = window.prompt("Save count preset as:", "preset");
+        if (!name) return;
+        const presets = readPresets();
+        presets[name] = countInput ? countInput.value : "";
+        writePresets(presets);
+        refreshPresetSelect();
+        if (toaster) toaster.show("Preset saved: " + name, "success");
+      });
+    }
+    if (presetRecallBtn) {
+      presetRecallBtn.addEventListener("click", () => {
+        if (!presetSelect || !countInput) return;
+        const name = presetSelect.value;
+        if (!name) return;
+        const presets = readPresets();
+        if (presets[name] != null) {
+          countInput.value = presets[name];
+          runCounts();
+        }
+      });
+    }
+    if (countBtn) countBtn.addEventListener("click", runCounts);
+
+    // ---- Live updates ----
+    if (model && typeof model.subscribe === "function") {
+      model.subscribe(() => {
+        renderOutline();
+        renderIssues();
+        runCounts();
+      });
+    }
+    renderOutline();
+    renderIssues();
+    runCounts();
+    refreshPresetSelect();
+
+    return { renderOutline, renderIssues, runCounts, refreshPresetSelect };
+  }
+
+  S.qaPanel = {
+    PRESET_KEY,
+    buildOutline,
+    countSelectors,
+    detectIssues,
+    mountQaPanel
+  };
+})(window.Scribe || (window.Scribe = {}));

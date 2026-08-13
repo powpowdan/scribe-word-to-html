@@ -75,6 +75,27 @@
             </button>
           </div>
         </div>
+        <div class="card card-surface mt-3">
+          <div class="card-body">
+            <h2 class="card-title"><i class="fa-solid fa-rectangle-list me-2 text-primary"></i>Document report</h2>
+
+            <h3 class="qa-section-heading">Outline</h3>
+            <div id="qaOutline" class="qa-outline" aria-label="Document outline"></div>
+
+            <h3 class="qa-section-heading">Issues to review</h3>
+            <div id="qaIssues" class="qa-issues-wrap" aria-label="Issues to review" aria-live="polite"></div>
+
+            <h3 class="qa-section-heading">Tag / selector counts</h3>
+            <textarea id="qaCountInput" class="form-control font-monospace mb-2" rows="3" placeholder="table&#10;.alert&#10;h2"></textarea>
+            <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" id="qaCountBtn"><i class="fa-solid fa-hashtag me-1"></i>Count</button>
+            <div id="qaCountResults" class="qa-count-results"></div>
+            <div class="qa-presets input-group input-group-sm mt-2">
+              <select id="qaPresetSelect" class="form-select" aria-label="Count presets"></select>
+              <button type="button" class="btn btn-outline-secondary" id="qaPresetRecallBtn" title="Recall preset">Recall</button>
+              <button type="button" class="btn btn-outline-secondary" id="qaPresetSaveBtn" title="Save current as preset">Save</button>
+            </div>
+          </div>
+        </div>
       </aside>
 
       <section class="col-lg-9">
@@ -274,6 +295,7 @@
   <script src="src/document-recovery.js"></script>
   <script src="src/wysiwyg.js"></script>
   <script src="src/document-commands.js"></script>
+  <script src="src/qa-panel.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>

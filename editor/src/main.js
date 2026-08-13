@@ -209,6 +209,24 @@
         });
       }
     }
+
+    // Document report panel (outline + issues + tag counts). Reads from the
+    // model; click-to-jump navigation targets the Live view by id.
+    if (S.qaPanel) {
+      S.qaPanel.mountQaPanel({
+        model: model,
+        liveRoot: liveView.element,
+        outlineEl: $("qaOutline"),
+        issuesEl: $("qaIssues"),
+        countInput: $("qaCountInput"),
+        countBtn: $("qaCountBtn"),
+        countResults: $("qaCountResults"),
+        presetSelect: $("qaPresetSelect"),
+        presetSaveBtn: $("qaPresetSaveBtn"),
+        presetRecallBtn: $("qaPresetRecallBtn"),
+        toaster: toaster
+      });
+    }
   }
 
   if (document.readyState === "loading") {

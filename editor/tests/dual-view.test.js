@@ -140,4 +140,20 @@ describe("Live view read() strips editor-only selection state", () => {
     expect(html).toContain(">a<");
     expect(html).toContain(">b<");
   });
+
+  it("canonicalizes <b>/<i> to <strong>/<em> so the model emits Canada.ca-preferred tags", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const model = new DocumentModel("");
+    const lv = createLiveView(el, model, { ChangeSource });
+
+    // Simulate execCommand output (Chrome emits <b>/<i>).
+    el.innerHTML = "<p><b>bold</b> and <i>italic</i></p>";
+    const html = lv.read();
+
+    expect(html).toContain("<strong>bold</strong>");
+    expect(html).toContain("<em>italic</em>");
+    expect(html).not.toContain("<b>");
+    expect(html).not.toContain("<i>");
+  });
 });

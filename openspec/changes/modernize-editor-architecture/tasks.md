@@ -28,13 +28,13 @@
 
 ## 3. QA/Activity panel — `qa-panel` capability
 
-- [ ] 3.1 Build panel scaffold with Log, Report, and Review sections plus a health-score badge on the main editor surface
-- [ ] 3.2 Subscribe the activity log to document-model change events; render human-readable action entries
-- [ ] 3.3 Implement the document outline builder from `h1`–`h6`; render nested; handle the no-headings placeholder
-- [ ] 3.4 Implement tag/selector counting with save/recall presets
-- [ ] 3.5 Implement an initial health-score algorithm (heading hierarchy, ID coverage, detected issues); refine later
-- [ ] 3.6 Implement review-list issue detectors (skipped heading levels, tables without IDs, etc.)
-- [ ] 3.7 Wire outline and review-item selection to navigate to the corresponding document location
+- [x] 3.1 Build panel scaffold with Log, Report, and Review sections plus a health-score badge on the main editor surface *(partial — Report + Review only; Log and health badge descoped per user)*
+- [ ] 3.2 Subscribe the activity log to document-model change events; render human-readable action entries *(DESCOPED — activity log dropped per user)*
+- [x] 3.3 Implement the document outline builder from `h1`–`h6`; render nested; handle the no-headings placeholder
+- [x] 3.4 Implement tag/selector counting with save/recall presets
+- [ ] 3.5 Implement an initial health-score algorithm (heading hierarchy, ID coverage, detected issues); refine later *(DESCOPED — health badge dropped per user)*
+- [x] 3.6 Implement review-list issue detectors (skipped heading levels, tables without IDs, etc.)
+- [x] 3.7 Wire outline and review-item selection to navigate to the corresponding document location
 
 ## 4. Document commands — `document-commands` capability
 

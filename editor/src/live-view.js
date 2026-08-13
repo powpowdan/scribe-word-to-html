@@ -19,14 +19,16 @@
 
     return {
       element,
-      /** Read the rendered HTML for the document model, with editor-only
-       *  selection state (.selected/.hovered from the table editor) stripped
-       *  so the model never holds transient UI classes. */
+      /** Read the rendered HTML for the document model, with editor-only state
+       *  stripped (.selected/.hovered from the table editor) so the model never
+       *  holds transient UI classes, and <b>/<i> canonicalized to <strong>/<em>
+       *  (Canada.ca/WET preference; execCommand emits b/i during live editing). */
       read() {
         const clone = element.cloneNode(true);
         clone.querySelectorAll(".selected, .hovered").forEach((el) => {
           el.classList.remove("selected", "hovered");
         });
+        if (S.normalizeBoldItalic) S.normalizeBoldItalic(clone);
         return clone.innerHTML;
       },
       /** Render HTML into the region without going through the model. */

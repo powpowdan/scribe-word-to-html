@@ -53,6 +53,22 @@
     if (el.parentNode) el.parentNode.removeChild(el);
   }
 
+  // Convert <b> -> <strong> and <i> -> <em> (Canada.ca/WET prefers strong/em).
+  // Children are preserved; this is the same conversion the paste sanitizer
+  // applies, extracted so live-edited content can be canonicalized too.
+  function normalizeBoldItalic(container) {
+    container.querySelectorAll("b").forEach((b) => {
+      const s = document.createElement("strong");
+      while (b.firstChild) s.appendChild(b.firstChild);
+      if (b.parentNode) b.parentNode.replaceChild(s, b);
+    });
+    container.querySelectorAll("i").forEach((i) => {
+      const e = document.createElement("em");
+      while (i.firstChild) e.appendChild(i.firstChild);
+      if (i.parentNode) i.parentNode.replaceChild(e, i);
+    });
+  }
+
   // ===========================================================================
   // INPUT HELPERS  (legacy L624-L639)
   // ===========================================================================
@@ -147,16 +163,7 @@
     });
 
     // b → strong, i → em
-    container.querySelectorAll("b").forEach((b) => {
-      const s = document.createElement("strong");
-      while (b.firstChild) s.appendChild(b.firstChild);
-      b.parentNode.replaceChild(s, b);
-    });
-    container.querySelectorAll("i").forEach((i) => {
-      const e = document.createElement("em");
-      while (i.firstChild) e.appendChild(i.firstChild);
-      i.parentNode.replaceChild(e, i);
-    });
+    normalizeBoldItalic(container);
 
     // div: unwrap inside li; for top-level divs, unwrap if it contains block-level
     // children (Drupal/HTML structural wrappers), convert to <p> only if it has
@@ -443,6 +450,7 @@
   S.sanitizeWordHtml = sanitizeWordHtml;
   S.cleanWordHtml = cleanWordHtml;
   S.serializeForOutput = serializeForOutput;
+  S.normalizeBoldItalic = normalizeBoldItalic;
 
   S._cleanupInternals = {
     DEFAULT_REMOVE_ATTRS,
