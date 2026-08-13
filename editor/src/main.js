@@ -182,6 +182,33 @@
         onChange: () => model.setHTML(liveView.read(), ChangeSource.live)
       });
     }
+
+    // Document structure commands: Add IDs + On this page. Operate on the Live
+    // view's DOM, then flush to the model (source 'live' preserves the Live
+    // DOM so the Code view updates without a Live re-render).
+    function flushLive() {
+      model.setHTML(liveView.read(), ChangeSource.live);
+    }
+    if (S.documentCommands) {
+      const addIdsBtn = $("addIdsBtn");
+      if (addIdsBtn) {
+        addIdsBtn.addEventListener("click", () => {
+          S.documentCommands.addIds(liveView.element);
+          flushLive();
+          if (toaster) toaster.show("IDs added", "success");
+        });
+      }
+      const otpBtn = $("onThisPageBtn");
+      if (otpBtn) {
+        otpBtn.addEventListener("click", () => {
+          const depthSel = $("otpDepth");
+          const depth = depthSel ? parseInt(depthSel.value, 10) : 2;
+          const ok = S.documentCommands.addOnThisPage(liveView.element, { depth: depth });
+          flushLive();
+          if (toaster) toaster.show(ok ? '"On this page" inserted' : "No headings found", ok ? "success" : "warn");
+        });
+      }
+    }
   }
 
   if (document.readyState === "loading") {

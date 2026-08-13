@@ -52,6 +52,29 @@
             </div>
           </div>
         </div>
+
+        <div class="card card-surface mt-3">
+          <div class="card-body">
+            <h2 class="card-title"><i class="fa-solid fa-sitemap me-2 text-primary"></i>Structure</h2>
+            <p class="text-muted small">Add Canada.ca page-structure niceties to the current document.</p>
+
+            <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" id="addIdsBtn">
+              <i class="fa-solid fa-hashtag me-1"></i>Add IDs (headings, tables, figures)
+            </button>
+
+            <label class="form-label small fw-semibold mb-1" for="otpDepth">On this page — heading depth</label>
+            <select id="otpDepth" class="form-select form-select-sm mb-2">
+              <option value="2" selected>2 (h2 only)</option>
+              <option value="3">3 (h2 → h3)</option>
+              <option value="4">4 (h2 → h4)</option>
+              <option value="5">5 (h2 → h5)</option>
+              <option value="6">6 (h2 → h6)</option>
+            </select>
+            <button type="button" class="btn btn-outline-primary btn-sm w-100" id="onThisPageBtn">
+              <i class="fa-solid fa-list-ul me-1"></i>Insert "On this page"
+            </button>
+          </div>
+        </div>
       </aside>
 
       <section class="col-lg-9">
@@ -250,6 +273,7 @@
   <script src="src/toasts.js"></script>
   <script src="src/document-recovery.js"></script>
   <script src="src/wysiwyg.js"></script>
+  <script src="src/document-commands.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>

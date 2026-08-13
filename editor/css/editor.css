@@ -433,6 +433,31 @@ body {
 .wysiwyg-block { display: inline-flex; align-items: center; }
 .wysiwyg-block .form-select { width: auto; min-width: 8rem; }
 
+/* ---------- Rendered "On this page" nav (in Live preview) ---------- */
+.live-surface nav.on-this-page {
+  margin: 1rem 0 1.5rem;
+  padding: 0.85rem 1rem 0.6rem;
+  background: #f4f6ff;
+  border-left: 4px solid var(--scribe-blue);
+  border-radius: 0.4rem;
+}
+.live-surface nav.on-this-page > h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+  color: #1f2a44;
+}
+.live-surface nav.on-this-page ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.live-surface nav.on-this-page li {
+  margin: 0.15rem 0;
+}
+.live-surface nav.on-this-page a {
+  color: var(--scribe-blue);
+}
+
 /* ---------- Onboarding empty-state ---------- */
 .onboarding-hint {
   display: flex;
