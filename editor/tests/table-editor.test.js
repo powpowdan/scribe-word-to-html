@@ -495,3 +495,55 @@ describe("Table toolbar hides when clicking outside the active table", () => {
     toolbar.remove();
   });
 });
+
+// ----- Caption-field suggestion placeholders on activation -----
+describe("Caption fields get suggestion placeholders on table activation", () => {
+  function setup(html) {
+    const root = document.createElement("div");
+    root.innerHTML = html;
+    document.body.appendChild(root);
+    const toolbar = document.createElement("div");
+    toolbar.hidden = true;
+    document.body.appendChild(toolbar);
+    // Real inputs with ids (the mount looks them up by id).
+    const num = document.createElement("input"); num.id = "captionNumber";
+    const title = document.createElement("input"); title.id = "captionTitle";
+    const unit = document.createElement("input"); unit.id = "captionUnit";
+    document.body.appendChild(num);
+    document.body.appendChild(title);
+    document.body.appendChild(unit);
+    const api = T.mountTableEditor({
+      liveRoot: root,
+      toolbar,
+      onChange() {},
+      ids: { captionNumber: "captionNumber", captionTitle: "captionTitle", captionUnit: "captionUnit" }
+    });
+    return { root, toolbar, api, num, title, unit, cleanup() { api.detach(); root.remove(); toolbar.remove(); num.remove(); title.remove(); unit.remove(); } };
+  }
+
+  it("placeholders show the table position and the nearest preceding heading", () => {
+    const ctx = setup(
+      "<h2>Funding Results</h2><p>text</p><table><tbody><tr><td>a</td></tr></tbody></table>"
+    );
+    ctx.root.querySelector("td").dispatchEvent(new win.Event("mousedown", { bubbles: true }));
+
+    expect(ctx.num.placeholder).toBe("1");            // position among tables
+    expect(ctx.title.placeholder).toBe("Funding Results"); // nearest preceding heading
+    expect(ctx.unit.placeholder).toBe("$ amount or subtext");
+    // Values stay empty — a placeholder is a hint, not a commit.
+    expect(ctx.num.value).toBe("");
+    expect(ctx.title.value).toBe("");
+    ctx.cleanup();
+  });
+
+  it("an existing caption fills the VALUES, not the placeholders", () => {
+    const ctx = setup(
+      '<table data-caption-num="3" data-caption-title="Existing" data-caption-unit="$M"><tbody><tr><td>a</td></tr></tbody></table>'
+    );
+    ctx.root.querySelector("td").dispatchEvent(new win.Event("mousedown", { bubbles: true }));
+    expect(ctx.num.value).toBe("3");
+    expect(ctx.title.value).toBe("Existing");
+    expect(ctx.unit.value).toBe("$M");
+    ctx.cleanup();
+  });
+});

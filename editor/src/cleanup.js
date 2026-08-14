@@ -69,6 +69,20 @@
     });
   }
 
+  // Wrap every <table> whose parent is not already a .table-responsive div
+  // (WET convention; every table in output must carry the wrapper).
+  // Idempotent: already-wrapped tables are left untouched, wrapper and all.
+  function ensureTableResponsive(container) {
+    container.querySelectorAll("table").forEach((table) => {
+      const parent = table.parentElement;
+      if (parent && parent.classList && parent.classList.contains("table-responsive")) return;
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("table-responsive");
+      if (table.parentNode) table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    });
+  }
+
   // ===========================================================================
   // INPUT HELPERS  (legacy L624-L639)
   // ===========================================================================
@@ -418,6 +432,9 @@
     const clone = document.createElement("div");
     clone.innerHTML = html;
 
+    // Guarantee the WET table-responsive wrapper on every table in output.
+    ensureTableResponsive(clone);
+
     // Convert canvas-only image placeholders into HTML comments for output
     clone.querySelectorAll(".img-placeholder").forEach((el) => {
       const label = el.getAttribute("data-img-alt") || "image";
@@ -451,6 +468,7 @@
   S.cleanWordHtml = cleanWordHtml;
   S.serializeForOutput = serializeForOutput;
   S.normalizeBoldItalic = normalizeBoldItalic;
+  S.ensureTableResponsive = ensureTableResponsive;
 
   S._cleanupInternals = {
     DEFAULT_REMOVE_ATTRS,

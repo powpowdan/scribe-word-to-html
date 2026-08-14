@@ -171,6 +171,43 @@ describe("serializeForOutput (image-placeholder -> comment)", () => {
   it("recursively strips empty elements but preserves empty table cells", () => {
     const html =
       '<p>kept</p><p></p><span> </span><table><tbody><tr><td></td><td>data</td></tr></tbody></table>';
-    expect(serializeForOutput(html)).toMatchInlineSnapshot(`"<p>kept</p><table><tbody><tr><td></td><td>data</td></tr></tbody></table>"`);
+    expect(serializeForOutput(html)).toMatchInlineSnapshot(`"<p>kept</p><div class="table-responsive"><table><tbody><tr><td></td><td>data</td></tr></tbody></table></div>"`);
+  });
+});
+
+describe("ensureTableResponsive (WET wrapper guarantee)", () => {
+  it("wraps an unwrapped table", () => {
+    const div = document.createElement("div");
+    div.innerHTML = "<table><tbody><tr><td>x</td></tr></tbody></table>";
+    win.Scribe.ensureTableResponsive(div);
+    const wrap = div.querySelector(".table-responsive");
+    expect(wrap).not.toBe(null);
+    expect(wrap.querySelector("table")).not.toBe(null);
+    expect(wrap.parentElement).toBe(div);
+  });
+
+  it("leaves already-wrapped tables untouched (idempotent)", () => {
+    const div = document.createElement("div");
+    div.innerHTML = '<div class="table-responsive"><table><tbody><tr><td>x</td></tr></tbody></table></div>';
+    win.Scribe.ensureTableResponsive(div);
+    expect(div.querySelectorAll(".table-responsive").length).toBe(1);
+    expect(div.firstElementChild.className).toBe("table-responsive");
+  });
+
+  it("wraps multiple tables independently", () => {
+    const div = document.createElement("div");
+    div.innerHTML = "<table><tbody><tr><td>1</td></tr></tbody></table><p>mid</p><table><tbody><tr><td>2</td></tr></tbody></table>";
+    win.Scribe.ensureTableResponsive(div);
+    expect(div.querySelectorAll(".table-responsive").length).toBe(2);
+    expect(div.querySelectorAll("table").length).toBe(2);
+    // Document order preserved: p between the two wrappers.
+    const wrappers = div.querySelectorAll(".table-responsive");
+    expect(wrappers[0].nextElementSibling.tagName).toBe("P");
+  });
+
+  it("serializeForOutput (Copy) guarantees the wrapper", () => {
+    const out = win.Scribe.serializeForOutput("<table><tbody><tr><td>x</td></tr></tbody></table>");
+    expect(out).toContain("table-responsive");
+    expect(out.indexOf("table-responsive")).toBeLessThan(out.indexOf("<table"));
   });
 });

@@ -897,6 +897,7 @@
       if (!t) return;
       const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
       const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+      const setPh = (id, v) => { const el = document.getElementById(id); if (el) el.placeholder = v || ""; };
       setVal(ids.captionNumber, t.getAttribute("data-caption-num") || "");
       setVal(ids.captionTitle, t.getAttribute("data-caption-title") || "");
       setVal(ids.captionUnit, t.getAttribute("data-caption-unit") || "");
@@ -904,6 +905,12 @@
       setChk(ids.condensedOpt, t.classList.contains("table-condensed"));
       setChk(ids.stripedOpt, t.classList.contains("table-striped"));
       setChk(ids.hoverOpt, t.classList.contains("table-hover"));
+      // Suggestion placeholders for the empty caption fields: Table # = the
+      // table's position in the document; Title = nearest preceding heading.
+      // Hints only — nothing is committed until the user types or wand-clicks.
+      setPh(ids.captionNumber, String(getTablePosition(liveRoot, t)));
+      setPh(ids.captionTitle, suggestCaptionFromContext(liveRoot, t) || "Departmental Results");
+      setPh(ids.captionUnit, "$ amount or subtext");
     }
 
     function updateHover(table) {

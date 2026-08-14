@@ -57,7 +57,7 @@
 
 ## 6. Code-view power features — `code-view-power-features` capability
 
-- [ ] 6.1 Add syntax highlighting that stays in sync with the editable textarea *(DEFERRED — fiddly overlay technique; line numbers + find/replace + go-to-line shipped without it)*
+- [x] 6.1 Add syntax highlighting that stays in sync with the editable textarea *(<pre> overlay behind a transparent-text textarea; custom tokenizer; updates on input AND programmatic model writes via the scribe:code-write signal)*
 - [x] 6.2 Add line numbers that track content growth and shrinkage
 - [x] 6.3 Add find with next/previous navigation and wrapping
 - [x] 6.4 Add regex find mode with backreference support

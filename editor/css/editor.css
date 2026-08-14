@@ -137,6 +137,25 @@ body {
   color: #fff;
 }
 
+/* Captions render ABOVE the table in the Live preview. Bootstrap 5's reboot
+ * sets caption-side: bottom, which hides the caption under the table where
+ * it's easy to miss — the caption (Table # / Title / Unit) must be visible
+ * while editing. Output markup is unchanged; this is preview-only. */
+.live-surface caption {
+  caption-side: top;
+  text-align: left;
+  color: #1f2a44;
+  padding: 0.4rem 0.3rem;
+  font-size: 0.92rem;
+}
+.live-surface caption strong {
+  font-weight: 700;
+}
+.live-surface caption small {
+  color: #6b7894;
+  font-size: 0.82rem;
+}
+
 /* WET/Canada.ca class preview compatibility.
  * The document uses WET class names (text-right, table-condensed, mrgn-lft-*,
  * fnt-nrml) because they are CORRECT for Canada.ca/WET output. Vendored
