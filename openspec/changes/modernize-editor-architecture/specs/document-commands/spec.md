@@ -69,14 +69,24 @@ The editor SHALL provide a command that scans the document text and inserts non-
 - **WHEN** the document already contains a non-breaking space at a required position
 - **THEN** the command leaves it as a single non-breaking space
 
-### Requirement: Footnotes converted to publishing markup
+### Requirement: Footnotes added via manual insert (WET/GCWeb markup)
 
-The editor SHALL provide a command that detects footnote-like structures carried over from Word and converts them into Canada.ca footnote publishing markup.
+The editor SHALL provide an "Insert footnote" command that, at the user's caret in the document, prompts for the footnote text and inserts WET/GCWeb footnote markup: an in-body reference (`<sup id="fnN-rf"><a class="fn-lnk" href="#fnN">…</a></sup>`) at the caret, and a definition-list entry (`<dt>Footnote N</dt>` + `<dd id="fnN"><p>text</p><p class="fn-rtn">…return…</p></dd>`) appended to a footnotes section (`<aside class="wb-fnote" role="note"><h2 id="fn">Footnotes</h2><dl/></aside>`), creating that section if it is absent. The footnote number SHALL be one greater than the highest existing numeric footnote id (symbolic ids such as `fn*` SHALL be skipped). Word footnotes are not auto-extracted (the cleanup pipeline strips Word footnote markup as unreliable); authors add footnotes manually with this command.
 
-#### Scenario: Word footnote becomes publishing markup
+#### Scenario: Inserting a footnote at the caret
 
-- **WHEN** the document contains a Word-derived footnote structure
-- **THEN** after the command runs the footnote is represented in Canada.ca publishing markup
+- **WHEN** the user places the caret in the document and inserts a footnote with the text "Source: Statistics Canada."
+- **THEN** a `<sup>` reference appears at the caret and a matching `<dd>` entry is added to the document's footnotes section
+
+#### Scenario: The footnotes section is created on first insert
+
+- **WHEN** the document has no footnotes section and the user inserts a footnote
+- **THEN** an `<aside class="wb-fnote">` with a "Footnotes" heading and definition list is created and the entry is placed inside it
+
+#### Scenario: Numbers continue from the highest existing footnote
+
+- **WHEN** the document already contains footnotes 1 and 2 and the user inserts another
+- **THEN** the new footnote is numbered 3
 
 ### Requirement: One-click table cleanup command
 

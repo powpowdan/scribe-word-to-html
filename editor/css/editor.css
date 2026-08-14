@@ -488,6 +488,25 @@ body {
 .qa-count-row.qa-count-error { color: #b45309; }
 .qa-presets { margin-top: 0.4rem; }
 
+/* ---------- Footnotes (WET wb-fnote) preview in Live view ---------- */
+.live-surface aside.wb-fnote {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dce7ff;
+}
+.live-surface aside.wb-fnote > h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: #1f2a44;
+}
+.live-surface aside.wb-fnote dl { margin: 0; }
+.live-surface aside.wb-fnote dt { font-weight: 600; margin-top: 0.4rem; }
+.live-surface aside.wb-fnote dd { margin: 0 0 0.5rem 0; }
+.live-surface aside.wb-fnote .fn-rtn { font-size: 0.78rem; }
+.live-surface .fn-lnk,
+.live-surface .fn-rtn a { color: var(--scribe-blue); }
+
 /* ---------- Onboarding empty-state ---------- */
 .onboarding-hint {
   display: flex;

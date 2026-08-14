@@ -227,6 +227,17 @@
         toaster: toaster
       });
     }
+
+    // Footnotes — manual insert producing WET (GCWeb) footnote markup.
+    if (S.footnotes && $("footnoteBtn")) {
+      S.footnotes.mountFootnotes({
+        liveRoot: liveView.element,
+        button: $("footnoteBtn"),
+        onChange: () => model.setHTML(liveView.read(), ChangeSource.live),
+        onInserted: (n) => { if (toaster) toaster.show("Footnote " + n + " inserted", "success"); },
+        onError: (msg) => { if (toaster) toaster.show(msg, "warn"); else window.alert(msg); }
+      });
+    }
   }
 
   if (document.readyState === "loading") {

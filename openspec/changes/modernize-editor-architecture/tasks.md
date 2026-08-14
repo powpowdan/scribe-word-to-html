@@ -42,7 +42,7 @@
 - [x] 4.2 Add On-this-page option with selectable heading depth
 - [ ] 4.3 Add Table-of-contents conversion option *(deferred — needs Canada.ca ToC markup grounding)*
 - [ ] 4.4 Implement doc-wide NBSP validation command (generalizes the in-cell version) *(deferred — needs typography rule set)*
-- [ ] 4.5 Implement footnotes → Canada.ca publishing markup command *(deferred — needs WET footnote markup grounding)*
+- [x] 4.5 Implement footnotes → Canada.ca publishing markup command *(manual "Insert footnote" producing WET wb-fnote markup; auto-extract from Word deferred — cleanup strips Word footnote markup as unreliable)*
 - [ ] 4.6 Implement one-click table cleanup command (non-interactive; applies the same transforms as the editor) *(redundant — paste auto-formats via formatTablesInContainer; Inc 2)*
 
 ## 5. Table editor enhancements — `table-editor` delta
