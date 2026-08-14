@@ -35,15 +35,17 @@ describe("wysiwyg toolbar wiring", () => {
     expect(document._calls.some((c) => c[0] === "bold")).toBe(true);
   });
 
-  it("dispatches list / indent commands by their data-cmd", () => {
+  it("dispatches list commands by their data-cmd", () => {
     const live = document.createElement("div");
-    const tb = makeToolbar(["insertUnorderedList", "indent", "outdent"]);
+    const tb = makeToolbar(["insertUnorderedList", "insertOrderedList"]);
     T.mountWysiwyg({ liveRoot: live, toolbar: tb, onChange() {} });
     tb.querySelector("[data-cmd='insertUnorderedList']").dispatchEvent(new win.Event("click"));
-    tb.querySelector("[data-cmd='indent']").dispatchEvent(new win.Event("click"));
+    tb.querySelector("[data-cmd='insertOrderedList']").dispatchEvent(new win.Event("click"));
     const names = document._calls.map((c) => c[0]);
     expect(names).toContain("insertUnorderedList");
-    expect(names).toContain("indent");
+    expect(names).toContain("insertOrderedList");
+    // NOTE: indent/outdent are context-aware now (WET ladder for prose, native
+    // only inside lists) — covered in wysiwyg-indent.test.js, not blind-dispatched.
   });
 
   it("createLink prompts for a URL and dispatches createLink with it", () => {

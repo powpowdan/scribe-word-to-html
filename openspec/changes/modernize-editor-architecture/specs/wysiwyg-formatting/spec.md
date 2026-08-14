@@ -29,12 +29,36 @@ The toolbar SHALL provide controls that turn the current block or selection into
 
 ### Requirement: Indent and outdent controls
 
-The toolbar SHALL provide controls that increase or decrease the indentation of the current block or list item.
+The toolbar SHALL provide controls that increase or decrease the indentation of the current block or list item. Inside a list, indenting SHALL nest the list item (native list behavior). Outside a list, indenting SHALL NOT wrap the block in a `<blockquote>`; it SHALL step the block through the WET margin classes (`mrgn-lft-md` → `mrgn-lft-lg` → `mrgn-lft-xl`, capped), and outdenting SHALL step back down and remove the class at the bottom. A multi-block selection SHALL ladder every block it touches. When the caret is in a bare table cell (no prose block), the control SHALL direct the user to the table toolbar's indent instead of modifying the cell.
 
 #### Scenario: Indent a list item
 
 - **WHEN** the cursor is in a list item and the user activates indent
 - **THEN** the list item becomes nested under the previous item
+
+#### Scenario: Indent a paragraph uses the WET margin ladder, never a blockquote
+
+- **WHEN** the cursor is in a `<p>` outside any list and the user activates indent three times
+- **THEN** the paragraph successively carries `mrgn-lft-md`, then `mrgn-lft-lg`, then `mrgn-lft-xl`, and no `<blockquote>` is ever created
+
+#### Scenario: Outdent past the lowest level removes the class
+
+- **WHEN** a paragraph carries `mrgn-lft-md` and the user activates outdent
+- **THEN** the class is removed and further outdent is a no-op
+
+### Requirement: Non-breaking-space the current selection
+
+The toolbar SHALL provide an action that replaces every regular space with a non-breaking space (U+00A0) inside the current selection only, preserving unselected text (including partial text nodes and text after the selection end). With no selection, it SHALL prompt the user to select text first.
+
+#### Scenario: Selected phrase becomes non-breaking
+
+- **WHEN** the user selects "FedDev Ontario" and activates the NBSP action
+- **THEN** the selection's space becomes U+00A0 and surrounding text is unchanged
+
+#### Scenario: No selection warns instead of converting
+
+- **WHEN** the user activates the NBSP action with a collapsed caret
+- **THEN** a warning is shown and no text is converted
 
 ### Requirement: Block format selector
 

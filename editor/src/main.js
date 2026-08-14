@@ -179,7 +179,9 @@
         liveRoot: liveView.element,
         toolbar: $("wysiwygToolbar"),
         blockSelect: $("blockFormatSelect"),
-        onChange: () => model.setHTML(liveView.read(), ChangeSource.live)
+        nbspBtn: $("nbspProseBtn"),
+        onChange: () => model.setHTML(liveView.read(), ChangeSource.live),
+        notify: (msg, type) => { if (toaster) toaster.show(msg, type || "info"); }
       });
     }
 
