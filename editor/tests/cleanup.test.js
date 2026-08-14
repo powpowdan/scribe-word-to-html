@@ -269,3 +269,117 @@ describe("stripWordBookmarks (Word bookmark anchors)", () => {
     expect(lv.read()).toContain("keep");
   });
 });
+
+describe("stripWordComments (Word paste markup)", () => {
+  it("removes inline comment anchors and trailing comment text blocks", () => {
+    // Condensed from a real Word clipboard fragment (unquoted attrs as Word
+    // emits them): a msocomrefanchor span wraps the [DB1] anchor link, and a
+    // msocomtxt div at the end holds the comment body.
+    const html =
+      '<p class=MsoNormal>Body text' +
+      '<span class=msocomrefanchor><a class=msocomanchor href="#_msocom_1" name="_msocom_1">[DB1]</a></span>' +
+      ' continues.</p>' +
+      '<div class=msocomtxt><div><a href="#_msocom_1">DB:</a> please revise this line.</div></div>';
+    const out = sanitizeWordHtml(html);
+    expect(out).not.toContain("msocom");
+    expect(out).not.toContain("[DB1]");
+    expect(out).not.toContain("please revise");
+    expect(out).toContain("Body text");
+    expect(out).toContain("continues.");
+  });
+
+  it("matches comment classes case-insensitively (MsoCommentReference)", () => {
+    const html =
+      '<p>Text<span class=MsoCommentReference><a class=msocomanchor>[JZ1]</a></span>.</p>' +
+      '<div class=msocomtxt>comment body</div>';
+    const out = sanitizeWordHtml(html);
+    expect(out).not.toContain("[JZ1]");
+    expect(out).not.toContain("comment body");
+    expect(out).toContain("Text");
+  });
+
+  it("removes markers identified only by mso-special-character:comment style", () => {
+    const html =
+      '<p>Text<span style="mso-special-character:comment">&nbsp;</span>kept</p>';
+    const out = sanitizeWordHtml(html);
+    expect(out).not.toContain("mso-special-character");
+    expect(out).toContain("kept");
+  });
+
+  it("cleanWordHtml drops comments silently (no warning added)", () => {
+    const html =
+      '<p>Body<span class=msocomrefanchor><a class=msocomanchor>[DB1]</a></span>.</p>' +
+      '<div class=msocomtxt>comment body</div>';
+    const result = cleanWordHtml(html);
+    expect(result.warnings).toEqual([]);
+    expect(result.html).not.toContain("comment body");
+    expect(result.html).toContain("Body");
+  });
+
+  it("counts the comment constructs it removes", () => {
+    const div = document.createElement("div");
+    div.innerHTML =
+      '<p>x<span class=msocomrefanchor><a class=msocomanchor>[1]</a></span></p>' +
+      '<div class=msocomtxt>body</div>';
+    expect(win.Scribe.stripWordComments(div)).toBe(2);
+  });
+});
+
+describe("stripWordCommentsFromHtml (mammoth .docx output)", () => {
+  const mammothDoc = (body) =>
+    '<p>Text <a id="comment-ref-1" href="#comment-1">[DB1]</a> continues.</p>' +
+    "<dl><dt id=\"comment-1\">Comment [DB1]</dt><dd><p>please revise</p>" +
+    '<p> <a href="#comment-ref-1">↑</a></p></dd></dl>' + body;
+
+  it("removes [Author1] inline anchors and the trailing comment dl", () => {
+    const out = win.Scribe.stripWordCommentsFromHtml(mammothDoc(""));
+    expect(out).not.toContain("comment-ref-1");
+    expect(out).not.toContain("[DB1]");
+    expect(out).not.toContain("<dl");
+    expect(out).not.toContain("please revise");
+    expect(out).toContain("Text");
+    expect(out).toContain("continues.");
+  });
+
+  it("keeps real definition-list content (non-comment dt)", () => {
+    const out = win.Scribe.stripWordCommentsFromHtml(
+      '<dl><dt>Term</dt><dd>Definition</dd></dl>'
+    );
+    expect(out).toContain("<dt>Term</dt>");
+    expect(out).toContain("Definition");
+  });
+
+  it("removes every comment anchor when several comments reference the same text", () => {
+    const html =
+      '<p>A<a id="comment-ref-1" href="#comment-1">[DB1]</a>' +
+      '<a id="comment-ref-2" href="#comment-2">[DB2]</a> B</p>' +
+      '<dl><dt id="comment-1">Comment [DB1]</dt><dd>c1</dd>' +
+      '<dt id="comment-2">Comment [DB2]</dt><dd>c2</dd></dl>';
+    const out = win.Scribe.stripWordCommentsFromHtml(html);
+    expect(out).not.toContain("[DB");
+    expect(out).not.toContain("<dl");
+    expect(out).toContain("A");
+    expect(out).toContain("B");
+  });
+});
+
+describe("serializeForOutput strips Word comments (defense in depth)", () => {
+  it("drops mammoth comment artifacts from raw Code-view HTML on Copy", () => {
+    const out = serializeForOutput(
+      '<p>Text <a id="comment-ref-1" href="#comment-1">[DB1]</a></p>' +
+      '<dl><dt id="comment-1">Comment [DB1]</dt><dd>body</dd></dl>'
+    );
+    expect(out).not.toContain("comment-ref");
+    expect(out).not.toContain("[DB1]");
+    expect(out).not.toContain("<dl");
+    expect(out).toContain("Text");
+  });
+
+  it("drops Word paste comment markup that bypassed the paste pipeline", () => {
+    const out = serializeForOutput(
+      '<p>Body<span class=msocomrefanchor><a class=msocomanchor>[DB1]</a></span></p>'
+    );
+    expect(out).not.toContain("[DB1]");
+    expect(out).toContain("Body");
+  });
+});

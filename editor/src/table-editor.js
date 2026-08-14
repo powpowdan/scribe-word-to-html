@@ -908,7 +908,7 @@
       // Suggestion placeholders for the empty caption fields: Table # = the
       // table's position in the document; Title = nearest preceding heading.
       // Hints only — nothing is committed until the user types or wand-clicks.
-      setPh(ids.captionNumber, String(getTablePosition(liveRoot, t)));
+      setPh(ids.captionNumber, "Table: " + getTablePosition(liveRoot, t));
       setPh(ids.captionTitle, suggestCaptionFromContext(liveRoot, t) || "Departmental Results");
       setPh(ids.captionUnit, "$ amount or subtext");
     }

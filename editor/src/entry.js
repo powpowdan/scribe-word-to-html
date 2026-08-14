@@ -68,7 +68,11 @@
         window.mammoth
           .convertToHtml({ arrayBuffer: ev.target.result })
           .then((result) => {
-            const html = withTablesFormatted((result && result.value) || "");
+            // mammoth renders Word comments as [Author1] inline anchors plus a
+            // trailing comment <dl>; strip them so comments never enter the model.
+            const html = withTablesFormatted(
+              S.stripWordCommentsFromHtml((result && result.value) || "")
+            );
             model.setHTML(html, ChangeSource.docx);
             if (typeof hooks.onDocx === "function") hooks.onDocx({ messages: result && result.messages });
           })

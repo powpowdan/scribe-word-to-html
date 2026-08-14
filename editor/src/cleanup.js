@@ -83,6 +83,73 @@
     });
   }
 
+  // ===========================================================================
+  // WORD COMMENT REMOVAL
+  // ===========================================================================
+
+  // Classes Word uses in clipboard HTML for comments: the inline reference
+  // anchor (msocomrefanchor span wrapping an msocomanchor link) and the
+  // comment text blocks appended after the body (msocomtxt). The legacy
+  // ".commentreference/.msocomment" selectors are kept for safety.
+  const WORD_COMMENT_CLASSES = new Set([
+    "msocomrefanchor", "msocomanchor", "msocomtxt",
+    "msocommentreference", "commentreference", "msocomment"
+  ]);
+
+  // True when the element is part of Word's comment markup. Classes are
+  // checked case-insensitively (Word emits class=MsoCommentReference).
+  function isWordCommentMarker(el) {
+    const cls = (el.getAttribute("class") || "").toLowerCase();
+    if (cls && cls.split(/\s+/).some((c) => WORD_COMMENT_CLASSES.has(c))) return true;
+    // Word also wraps the anchor glyph in a span identified only by style.
+    if (el.nodeName.toLowerCase() === "span") {
+      const style = (el.getAttribute("style") || "").replace(/\s+/g, "").toLowerCase();
+      if (style.indexOf("mso-special-character:comment") !== -1) return true;
+    }
+    return false;
+  }
+
+  // Remove Word comments from a container, wherever they came from:
+  //  - Word paste markup (class/style identified anchors + msocomtxt blocks)
+  //  - mammoth .docx output ([Author1] inline anchors with id="comment-ref-N"
+  //    plus a trailing <dl> whose <dt> terms carry id="comment-N")
+  // Must run before sanitizeWordHtml's attribute stripping (classes/styles are
+  // the signal). Returns how many comment constructs were removed.
+  function stripWordComments(container) {
+    let count = 0;
+    const markers = Array.from(container.querySelectorAll("*")).filter(isWordCommentMarker);
+    markers.forEach((el) => {
+      // An anchor link nested inside a reference-anchor span leaves with its
+      // parent; count and remove only the outermost marker.
+      if (markers.some((m) => m !== el && m.contains(el))) return;
+      removeElement(el);
+      count++;
+    });
+    container.querySelectorAll('a[id^="comment-ref-"]').forEach((a) => {
+      removeElement(a);
+      count++;
+    });
+    container.querySelectorAll("dl").forEach((dl) => {
+      const dts = Array.from(dl.children).filter((c) => c.nodeName === "DT");
+      // Only a dl made entirely of mammoth comment terms is comment markup;
+      // a dl with any non-comment dt is real content and is kept.
+      if (dts.length > 0 && dts.every((dt) => (dt.id || "").indexOf("comment-") === 0)) {
+        removeElement(dl);
+        count++;
+      }
+    });
+    return count;
+  }
+
+  // String convenience over stripWordComments (for the mammoth .docx path,
+  // which produces an HTML string rather than a DOM container).
+  function stripWordCommentsFromHtml(html) {
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    stripWordComments(container);
+    return container.innerHTML;
+  }
+
   // Remove Word-internal bookmark anchors. Word marks its own bookmarks with
   // a leading underscore in the name attribute (_Toc*, _Ref*, _Hlk*, and the
   // newer _the_heading_title style). An empty anchor is removed outright; one
@@ -132,6 +199,10 @@
 
     const container = document.createElement("div");
     container.innerHTML = html;
+
+    // Word comments first — identification relies on classes/styles that
+    // Pass 1 strips below (this also heals the legacy dead selector ordering).
+    stripWordComments(container);
 
     // Pass 1: TreeWalker — comments, namespaced tags, removeTags, attribute stripping
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_ALL, null, false);
@@ -303,8 +374,8 @@
   function stripUnsupportedMarkup(container) {
     // Footnote containers (Word field-code wrappers, span classes already stripped)
     container.querySelectorAll(".footnote, .endnote, .footnotereference, .MsoFootnoteReference").forEach(removeElement);
-    // Word comment anchors
-    container.querySelectorAll(".commentreference, .msocomment").forEach(removeElement);
+    // Word comment anchors are removed by stripWordComments (sanitizeWordHtml),
+    // which runs before attribute stripping so the classes are still present.
   }
 
   // ===========================================================================
@@ -444,6 +515,10 @@
     // Drop any Word bookmark anchors that survived earlier editing.
     stripWordBookmarks(clone);
 
+    // Defense in depth: drop Word comments (paste markup or mammoth artifacts)
+    // that reached the document via raw Code-view HTML or an uncleaned path.
+    stripWordComments(clone);
+
     // Convert canvas-only image placeholders into HTML comments for output
     clone.querySelectorAll(".img-placeholder").forEach((el) => {
       const label = el.getAttribute("data-img-alt") || "image";
@@ -479,6 +554,8 @@
   S.normalizeBoldItalic = normalizeBoldItalic;
   S.ensureTableResponsive = ensureTableResponsive;
   S.stripWordBookmarks = stripWordBookmarks;
+  S.stripWordComments = stripWordComments;
+  S.stripWordCommentsFromHtml = stripWordCommentsFromHtml;
 
   S._cleanupInternals = {
     DEFAULT_REMOVE_ATTRS,
@@ -491,6 +568,9 @@
     stripImages,
     acceptTrackChanges,
     stripUnsupportedMarkup,
-    normalizeListMarkers
+    normalizeListMarkers,
+    stripWordComments,
+    isWordCommentMarker,
+    WORD_COMMENT_CLASSES
   };
 })(window.Scribe || (window.Scribe = {}));

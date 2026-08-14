@@ -527,7 +527,7 @@ describe("Caption fields get suggestion placeholders on table activation", () =>
     );
     ctx.root.querySelector("td").dispatchEvent(new win.Event("mousedown", { bubbles: true }));
 
-    expect(ctx.num.placeholder).toBe("1");            // position among tables
+    expect(ctx.num.placeholder).toBe("Table: 1");    // position among tables
     expect(ctx.title.placeholder).toBe("Funding Results"); // nearest preceding heading
     expect(ctx.unit.placeholder).toBe("$ amount or subtext");
     // Values stay empty — a placeholder is a hint, not a commit.
