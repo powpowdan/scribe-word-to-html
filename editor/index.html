@@ -32,14 +32,14 @@
             <div class="mb-3">
               <label class="form-label fw-semibold" for="docxFile">Upload .docx</label>
               <input id="docxFile" class="form-control form-control-sm" type="file" accept=".docx">
-              <small class="text-muted">Converted by mammoth. Paste (below) is the primary path.</small>
+              <small class="text-muted">Primary: Paste word<br>Secondary: Upload .docx</small>
             </div>
 
             <hr>
             <h3 class="rail-heading">How it works</h3>
             <ol class="rail-steps">
               <li><strong>Paste</strong> Word content into the Live view (Ctrl+V). It is cleaned automatically.</li>
-              <li><strong>Edit</strong> in Live (visual) or Code (HTML). They sync on blur.</li>
+              <li><strong>Edit</strong> in Live (visual) or Code (HTML). They sync on blur. (clicking anywhere)</li>
               <li><strong>Copy HTML</strong> — placeholders become <code>&lt;!-- image: ... --&gt;</code> comments in the output.</li>
             </ol>
 
@@ -47,8 +47,8 @@
 
             <div class="alert alert-light py-2 small mt-3 mb-0 border">
               <i class="fa-solid fa-circle-info me-2 text-primary"></i>
-              <strong>Double-click opens it.</strong> No server or build step needed —
-              this editor loads entirely from local files. Work offline.
+              <strong>No server or build step needed </strong> <br>
+              This editor loads entirely from local files, works offline 100% secure data.
             </div>
           </div>
         </div>
@@ -56,7 +56,7 @@
         <div class="card card-surface mt-3">
           <div class="card-body">
             <h2 class="card-title"><i class="fa-solid fa-sitemap me-2 text-primary"></i>Structure</h2>
-            <p class="text-muted small">Add Canada.ca page-structure niceties to the current document.</p>
+            <p class="text-muted small">Add Canada.ca Id's automatically or insert a table of contents</p>
 
             <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" id="addIdsBtn">
               <i class="fa-solid fa-hashtag me-1"></i>Add IDs (headings, tables, figures)
@@ -86,7 +86,7 @@
             <div id="qaIssues" class="qa-issues-wrap" aria-label="Issues to review" aria-live="polite"></div>
 
             <h3 class="qa-section-heading">Tag / selector counts</h3>
-            <textarea id="qaCountInput" class="form-control font-monospace mb-2" rows="3" placeholder="table&#10;.alert&#10;h2"></textarea>
+            <textarea id="qaCountInput" class="form-control font-monospace mb-2" rows="6" placeholder="table&#10;.alert&#10;h2"></textarea>
             <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" id="qaCountBtn"><i class="fa-solid fa-hashtag me-1"></i>Count</button>
             <div id="qaCountResults" class="qa-count-results"></div>
             <div class="qa-presets input-group input-group-sm mt-2">
@@ -115,9 +115,9 @@
               <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="indent" title="Increase indent"><i class="fa-solid fa-indent"></i></button>
               <span class="wysiwyg-divider"></span>
               <label class="wysiwyg-block">
-                <span class="wb-inv">Block format</span>
-                <select id="blockFormatSelect" class="form-select form-select-sm" title="Block format">
-                  <option value="">Block…</option>
+                <span class="wb-inv">Heading / paragraph</span>
+                <select id="blockFormatSelect" class="form-select form-select-sm" title="Turn this block into a heading (or back to a paragraph)">
+                  <option value="">Heading…</option>
                   <option value="p">Paragraph</option>
                   <option value="h1">Heading 1</option>
                   <option value="h2">Heading 2</option>
@@ -154,7 +154,7 @@
               </button>
             </div>
             <div class="code-toolbar">
-              <small class="text-muted"><kbd>Ctrl+F</kbd> find &middot; <kbd>Ctrl+Shift+F</kbd> find &amp; replace &middot; <kbd>Ctrl+G</kbd> go to line</small>
+              <small class="code-shortcut-hint"><kbd>Ctrl+F</kbd> find &middot; <kbd>Ctrl+Shift+F</kbd> find &amp; replace &middot; <kbd>Ctrl+G</kbd> go to line</small>
               <button type="button" id="goToLineBtn" class="btn btn-sm btn-outline-secondary ms-auto"><i class="fa-solid fa-arrow-down me-1"></i>Go to line</button>
             </div>
 

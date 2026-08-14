@@ -14,12 +14,17 @@
 
   const PRESET_KEY = "scribe.countPresets.v1";
 
+  // Structural tags auto-populated into the counts box (the HTML structure of
+  // the page). Only prefills an empty textarea — user edits are preserved.
+  const DEFAULT_COUNT_SELECTORS = ["h1", "h2", "h3", "h4", "h5", "h6", "table", "ul", "ol", "figure"];
+
   function isRealHeading(h) {
     // Skip headings that belong to a generated "On this page" nav.
     return !h.closest("nav.on-this-page");
   }
 
-  // Flat list of { level, id, text } in document order.
+  // Flat list of { level, id, text, index } in document order. `index` is the
+  // position among real headings — used for click-to-jump when there is no id.
   function buildOutline(root) {
     const out = [];
     root.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((h) => {
@@ -27,7 +32,8 @@
       out.push({
         level: parseInt(h.tagName.charAt(1), 10),
         id: h.id || null,
-        text: h.textContent.trim()
+        text: h.textContent.trim(),
+        index: out.length
       });
     });
     return out;
@@ -46,36 +52,42 @@
     });
   }
 
-  // Canada.ca publishing lint. Each issue: { type, message, id? } (id used for
-  // click-to-jump navigation when available).
+  // Canada.ca publishing lint. Each issue: { type, message, id?, locator? }
+  // — id used for navigation when available; locator { kind, index } gives a
+  // document-position fallback so id-less issues stay clickable.
   function detectIssues(root) {
     const issues = [];
 
     // Heading hierarchy + ids + empty headings.
     let prevLevel = 0;
+    let headingIdx = 0;
     root.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((h) => {
       if (!isRealHeading(h)) return;
       const level = parseInt(h.tagName.charAt(1), 10);
       const text = h.textContent.trim();
+      const locator = { kind: "heading", index: headingIdx++ };
       if (!text) {
-        issues.push({ type: "empty-heading", message: "Empty heading", id: h.id || null });
+        issues.push({ type: "empty-heading", message: "Empty heading", id: h.id || null, locator });
       }
       if (prevLevel && level > prevLevel + 1) {
         issues.push({
           type: "skipped-level",
           message: "Skipped heading level (h" + prevLevel + " \u2192 h" + level + ")" + (text ? ": \"" + text + "\"" : ""),
-          id: h.id || null
+          id: h.id || null,
+          locator
         });
       }
       if (!h.id) {
-        issues.push({ type: "heading-no-id", message: "Heading without an id" + (text ? ": \"" + text + "\"" : ""), id: null });
+        issues.push({ type: "heading-no-id", message: "Heading without an id" + (text ? ": \"" + text + "\"" : ""), id: null, locator });
       }
       prevLevel = level;
     });
 
     // Tables without ids.
+    let tableIdx = 0;
     root.querySelectorAll("table").forEach((t) => {
-      if (!t.id) issues.push({ type: "table-no-id", message: "Table without an id", id: null });
+      const locator = { kind: "table", index: tableIdx++ };
+      if (!t.id) issues.push({ type: "table-no-id", message: "Table without an id", id: null, locator });
     });
 
     // Leftover image placeholders.
@@ -89,11 +101,13 @@
     }
 
     // Links with empty / placeholder href.
+    let linkIdx = 0;
     root.querySelectorAll("a").forEach((a) => {
+      const locator = { kind: "link", index: linkIdx++ };
       const href = (a.getAttribute("href") || "").trim();
       if (!href || href === "#") {
         const label = a.textContent.trim();
-        issues.push({ type: "bad-link", message: "Link with empty or placeholder href" + (label ? ": \"" + label + "\"" : ""), id: a.id || null });
+        issues.push({ type: "bad-link", message: "Link with empty or placeholder href" + (label ? ": \"" + label + "\"" : ""), id: a.id || null, locator });
       }
     });
 
@@ -125,7 +139,7 @@
       return c;
     }
 
-    function navigateTo(id) {
+    function navigateToId(id) {
       if (!liveRoot || !id) return false;
       let el;
       try {
@@ -138,6 +152,33 @@
         return true;
       }
       return false;
+    }
+
+    // Position-based navigation: jump to the nth real heading / table / link
+    // in the Live view. Makes every outline entry and issue clickable even
+    // when the target has no id.
+    function navigateToLocator(locator) {
+      if (!liveRoot || !locator) return false;
+      let el = null;
+      if (locator.kind === "heading") {
+        const headings = Array.from(liveRoot.querySelectorAll("h1,h2,h3,h4,h5,h6")).filter(isRealHeading);
+        el = headings[locator.index];
+      } else if (locator.kind === "table") {
+        el = liveRoot.querySelectorAll("table")[locator.index];
+      } else if (locator.kind === "link") {
+        el = liveRoot.querySelectorAll("a")[locator.index];
+      }
+      if (el && el.scrollIntoView) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return true;
+      }
+      return false;
+    }
+
+    function navigate(item) {
+      // Prefer the id when present; fall back to the document position.
+      if (item && item.id && navigateToId(item.id)) return true;
+      return navigateToLocator(item && item.locator);
     }
 
     function renderOutline() {
@@ -156,12 +197,21 @@
         li.className = "qa-outline-l" + it.level;
         const a = document.createElement("a");
         a.textContent = it.text || "(empty heading)";
-        if (it.id) {
-          a.href = "#" + it.id;
-          a.addEventListener("click", (e) => { e.preventDefault(); navigateTo(it.id); });
-        } else {
+        // Every entry navigates (by id when present, by position otherwise);
+        // id-less headings keep the greyed style and gain a "no id" marker so
+        // the outline doubles as a missing-id scan.
+        a.href = "#";
+        if (!it.id) {
           a.className = "qa-no-nav";
+          const mark = document.createElement("span");
+          mark.className = "qa-no-id-mark";
+          mark.textContent = " \u00b7 no id";
+          a.appendChild(mark);
         }
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          navigate(it);
+        });
         li.appendChild(a);
         stack[stack.length - 1].ul.appendChild(li);
         const sub = document.createElement("ul");
@@ -186,9 +236,10 @@
         const li = document.createElement("li");
         li.className = "qa-issue qa-" + iss.type;
         li.textContent = iss.message;
-        if (iss.id) {
+        // Clickable whenever we can find the target (id or position).
+        if (iss.id || iss.locator) {
           li.className += " qa-clickable";
-          li.addEventListener("click", () => navigateTo(iss.id));
+          li.addEventListener("click", () => navigate(iss));
         }
         ul.appendChild(li);
       });
@@ -206,15 +257,22 @@
         countResults.innerHTML = '<p class="qa-empty">Enter tags or selectors above, then Count.</p>';
         return;
       }
+      // Only show selectors that match something (count > 0) — the box reads
+      // as "what exists in this page". Invalid selectors still surface.
+      let shown = 0;
       results.forEach((r) => {
+        if (r.empty || (!r.error && r.count === 0)) return;
         const row = document.createElement("div");
         row.className = "qa-count-row";
         const prefix = r.error ? "\u26a0 " : "";
-        const label = r.empty ? "(empty line)" : r.selector;
-        row.textContent = prefix + label + " = " + r.count;
+        row.textContent = prefix + r.selector + " = " + r.count;
         if (r.error) row.classList.add("qa-count-error");
         countResults.appendChild(row);
+        shown++;
       });
+      if (!shown) {
+        countResults.innerHTML = '<p class="qa-empty">No matches for these selectors.</p>';
+      }
     }
 
     // ---- Presets (localStorage) ----
@@ -278,6 +336,11 @@
         runCounts();
       });
     }
+    // Prefill the structural tags (h1-h6, table, ul, ol, figure) when the
+    // counts box is empty — the user's edits/presets are never overwritten.
+    if (countInput && !countInput.value.trim()) {
+      countInput.value = DEFAULT_COUNT_SELECTORS.join("\n");
+    }
     renderOutline();
     renderIssues();
     runCounts();
@@ -288,6 +351,7 @@
 
   S.qaPanel = {
     PRESET_KEY,
+    DEFAULT_COUNT_SELECTORS,
     buildOutline,
     countSelectors,
     detectIssues,

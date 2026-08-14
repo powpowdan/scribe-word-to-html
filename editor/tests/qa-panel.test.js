@@ -15,18 +15,18 @@ function rootWith(html) {
 }
 
 describe("buildOutline", () => {
-  it("lists real headings with level/id/text in document order", () => {
+  it("lists real headings with level/id/text in document order, indexed for position nav", () => {
     const root = rootWith(
       '<h1 id="a">Title</h1><h2 id="b">Section</h2><h3>Sub</h3>'
     );
     expect(Q.buildOutline(root)).toEqual([
-      { level: 1, id: "a", text: "Title" },
-      { level: 2, id: "b", text: "Section" },
-      { level: 3, id: null, text: "Sub" }
+      { level: 1, id: "a", text: "Title", index: 0 },
+      { level: 2, id: "b", text: "Section", index: 1 },
+      { level: 3, id: null, text: "Sub", index: 2 }
     ]);
   });
 
-  it("excludes headings inside an 'On this page' nav", () => {
+  it("excludes headings inside an 'On this page' nav (indexes stay contiguous)", () => {
     const root = rootWith(
       '<nav class="on-this-page"><h2>On this page</h2><ul><li><a href="#x">x</a></li></ul></nav>' +
         '<h2 id="x">Real section</h2>'
@@ -34,6 +34,7 @@ describe("buildOutline", () => {
     const outline = Q.buildOutline(root);
     expect(outline.length).toBe(1);
     expect(outline[0].text).toBe("Real section");
+    expect(outline[0].index).toBe(0);
   });
 });
 
@@ -68,15 +69,19 @@ describe("detectIssues", () => {
     expect(types).toContain("skipped-level");
   });
 
-  it("flags headings without an id", () => {
+  it("flags headings without an id, with a position locator", () => {
     const root = rootWith("<h2>no id</h2>");
-    expect(Q.detectIssues(root).some((i) => i.type === "heading-no-id")).toBe(true);
+    const issues = Q.detectIssues(root).filter((i) => i.type === "heading-no-id");
+    expect(issues.length).toBe(1);
+    expect(issues[0].locator).toEqual({ kind: "heading", index: 0 });
   });
 
   it("flags a table without an id", () => {
     const root = rootWith('<table id="t1"><tbody><tr><td>1</td></tr></tbody></table><table><tbody><tr><td>2</td></tr></tbody></table>');
     const issues = Q.detectIssues(root).filter((i) => i.type === "table-no-id");
     expect(issues.length).toBe(1);
+    // Locator points at the second table (position-based, clickable).
+    expect(issues[0].locator).toEqual({ kind: "table", index: 1 });
   });
 
   it("flags leftover image placeholders", () => {

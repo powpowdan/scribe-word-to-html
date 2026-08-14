@@ -68,15 +68,40 @@
       });
     }
 
+    // Track the Live view's last selection so toolbar controls can restore it.
+    // (Clicking a <select> blurs the Live view and can drop the caret; buttons
+    // keep it via mousedown preventDefault, but a select must open natively.)
+    let savedRange = null;
+    function saveSelection() {
+      const sel = document.getSelection && document.getSelection();
+      if (sel && sel.rangeCount) {
+        const range = sel.getRangeAt(0);
+        if (liveRoot.contains(range.commonAncestorContainer)) {
+          savedRange = range.cloneRange();
+        }
+      }
+    }
+    function restoreSelection() {
+      if (!savedRange) return false;
+      const sel = window.getSelection && window.getSelection();
+      if (!sel) return false;
+      liveRoot.focus();
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+      return true;
+    }
+
     if (blockSelect) {
-      blockSelect.addEventListener("mousedown", (e) => e.preventDefault());
       blockSelect.addEventListener("change", () => {
-        liveRoot.focus();
-        // formatBlock wants a tag name; browsers accept "h2" or "<h2>".
         const val = blockSelect.value;
-        if (val) exec("formatBlock", val.startsWith("<") ? val : "<" + val + ">");
+        if (!val) return;
+        // Restore the caret the dropdown click may have dropped.
+        restoreSelection();
+        // formatBlock wants a tag name; browsers accept "h2" or "<h2>".
+        exec("formatBlock", val.startsWith("<") ? val : "<" + val + ">");
         flush();
         refreshActive();
+        saveSelection();
         blockSelect.value = ""; // reset so the same format can be re-applied later
       });
     }
@@ -92,16 +117,22 @@
       });
     }
 
-    // Refresh active state as the selection moves.
-    document.addEventListener("selectionchange", refreshActive);
-    liveRoot.addEventListener("keyup", refreshActive);
-    liveRoot.addEventListener("mouseup", refreshActive);
+    // Refresh active state + track the selection as the caret moves.
+    function onSelectionActivity() {
+      saveSelection();
+      refreshActive();
+    }
+    document.addEventListener("selectionchange", onSelectionActivity);
+    liveRoot.addEventListener("keyup", onSelectionActivity);
+    liveRoot.addEventListener("mouseup", onSelectionActivity);
 
     return {
       refreshActive,
       runCommand,
+      saveSelection,
+      restoreSelection,
       detach() {
-        document.removeEventListener("selectionchange", refreshActive);
+        document.removeEventListener("selectionchange", onSelectionActivity);
       }
     };
   }

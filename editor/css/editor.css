@@ -188,14 +188,20 @@ body {
   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
 }
 
-/* Code editor: gutter + textarea side by side, scroll locked together. */
+/* Code editor: gutter + textarea side by side, scroll locked together.
+ * Taller default AND user-resizable — the native drag handle (bottom-right
+ * corner) resizes the whole unit (gutter + textarea together), because the
+ * textarea itself keeps resize:none and simply fills the container. */
 .code-editor {
   display: flex;
   border: 1px solid #1e293b;
   border-radius: 0.75rem;
   overflow: hidden;
   background: #0f172a;
-  max-height: 60vh;
+  resize: vertical;
+  height: 55vh;
+  min-height: 360px;
+  max-height: 85vh;
 }
 .code-editor .code-gutter {
   flex: 0 0 auto;
@@ -216,7 +222,8 @@ body {
   border: none;
   border-radius: 0;
   resize: none;
-  min-height: 240px;
+  height: 100%;
+  min-height: 0;
 }
 
 /* Code-view toolbar + find panel. */
@@ -232,6 +239,11 @@ body {
   border-radius: 0.25rem;
   padding: 0 0.3rem;
   font-size: 0.72rem;
+  color: #1f2a44;
+}
+/* Near-black so the shortcut hint reads clearly against the light card. */
+.code-shortcut-hint {
+  color: #1f2a44;
 }
 .code-find-panel {
   position: relative;
@@ -414,6 +426,14 @@ body {
   margin-bottom: 0.6rem;
   background: #f4f6ff;
   border: 1px solid #dce7ff;
+  /* Follow the user down the screen while the Live view scrolls; releases
+   * when the card scrolls past. Solid background so content never shows
+   * through the pinned toolbar. */
+  position: sticky;
+  top: 0.5rem;
+  z-index: 30;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+}
   border-radius: 0.6rem;
 }
 .wysiwyg-toolbar .btn { line-height: 1; }
@@ -473,6 +493,11 @@ body {
 .qa-outline a { color: #1f2a44; text-decoration: none; }
 .qa-outline a:hover { text-decoration: underline; color: var(--scribe-blue); }
 .qa-outline .qa-no-nav { color: #8892a0; }
+.qa-outline .qa-no-id-mark {
+  font-size: 0.72rem;
+  color: #b45309;
+  font-style: italic;
+}
 .qa-outline-l1 { font-weight: 600; }
 .qa-empty, .qa-ok { color: #8892a0; font-size: 0.82rem; margin: 0; }
 .qa-ok { color: #198754; }
