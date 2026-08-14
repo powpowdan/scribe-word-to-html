@@ -179,8 +179,11 @@
 
             <div class="code-editor">
               <div class="code-gutter" id="codeLineNumbers" aria-hidden="true"></div>
-              <textarea id="codeView" class="code-textarea" spellcheck="false"
-                        placeholder="Cleaned HTML appears here after you paste, or type/paste raw HTML..."></textarea>
+              <div class="code-input-wrap">
+                <pre class="code-highlight" id="codeHighlight" aria-hidden="true"><code></code></pre>
+                <textarea id="codeView" class="code-textarea" spellcheck="false"
+                          placeholder="Cleaned HTML appears here after you paste, or type/paste raw HTML..."></textarea>
+              </div>
             </div>
           </div>
         </div>
@@ -300,6 +303,7 @@
   <script src="src/document-commands.js"></script>
   <script src="src/qa-panel.js"></script>
   <script src="src/footnotes.js"></script>
+  <script src="src/highlight.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>

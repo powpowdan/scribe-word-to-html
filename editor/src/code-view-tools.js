@@ -315,6 +315,10 @@
     // ----- Event wiring -----
     ta.addEventListener("input", refreshGutter);
     ta.addEventListener("input", syncScroll);
+    // Programmatic writes from the document model (paste, commands) dispatch
+    // this signal — without it the gutter would go stale after a paste.
+    ta.addEventListener("scribe:code-write", refreshGutter);
+    ta.addEventListener("scribe:code-write", syncScroll);
     ta.addEventListener("scroll", syncScroll);
     if (findInput) findInput.addEventListener("input", () => recompute(true));
     if (refs.regexToggleBtn) {

@@ -105,8 +105,7 @@
     if (S.codeViewTools && $("codeView")) {
       S.codeViewTools.mountCodeViewTools({
         textarea: $("codeView"),
-        gutter: $("codeLineNumbers"),
-        findPanel: $("codeFindPanel"),
+        gutter: $("codeLineNumbers"),        findPanel: $("codeFindPanel"),
         findInput: $("codeFindInput"),
         replaceInput: $("codeReplaceInput"),
         replaceRow: $("codeReplaceRow"),
@@ -119,6 +118,16 @@
         closeBtn: $("codeFindCloseBtn"),
         replaceToggleBtn: $("codeFindReplaceToggle"),
         goToLineBtn: $("goToLineBtn")
+      });
+    }
+
+    // Syntax highlighting: decorative <pre> overlay behind the transparent-text
+    // textarea (the textarea remains the source of truth).
+    if (S.mountCodeHighlight && $("codeView") && $("codeHighlight")) {
+      S.mountCodeHighlight({
+        textarea: $("codeView"),
+        pre: $("codeHighlight"),
+        codeEl: $("codeHighlight").querySelector("code")
       });
     }
 

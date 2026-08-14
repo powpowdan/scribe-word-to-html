@@ -27,7 +27,8 @@ const DEFAULT_ORDER = [
   "live-view.js",
   "sync.js",
   "entry.js",
-  "copy.js"
+  "copy.js",
+  "highlight.js"
 ];
 
 export function loadScribe(files = DEFAULT_ORDER) {

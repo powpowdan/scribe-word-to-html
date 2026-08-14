@@ -217,14 +217,60 @@ body {
   user-select: none;
   overflow: hidden;
 }
+.code-input-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+}
+/* Syntax-highlight overlay: BEHIND the textarea, pure decoration. Metrics
+ * (font, size, line-height, padding, white-space, tab-size) must match the
+ * textarea exactly so highlighted lines align with the transparent text. */
+.code-highlight {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  padding: 1rem 1.1rem;
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+  overflow-wrap: normal;
+  color: #e2e8f0;
+}
 .code-editor .code-textarea {
+  position: relative;
+  z-index: 2;
   flex: 1 1 auto;
   border: none;
   border-radius: 0;
   resize: none;
   height: 100%;
   min-height: 0;
+  /* Transparent text over the highlight overlay; the caret stays visible. */
+  background: transparent;
+  color: transparent;
+  caret-color: #e2e8f0;
 }
+.code-editor .code-textarea::selection {
+  background: rgba(13, 110, 253, 0.35);
+}
+.code-editor .code-textarea::placeholder {
+  color: #64748b;
+}
+
+/* Token colors (dark theme). */
+.tok-tag { color: #7dd3fc; }            /* light blue */
+.tok-attr { color: #c4b5fd; }           /* violet */
+.tok-value { color: #86efac; }          /* green */
+.tok-punct { color: #94a3b8; }          /* slate */
+.tok-comment { color: #64748b; font-style: italic; }
+.tok-doctype { color: #64748b; }
+.tok-entity { color: #fbbf24; }         /* amber */
 
 /* Code-view toolbar + find panel. */
 .code-toolbar {

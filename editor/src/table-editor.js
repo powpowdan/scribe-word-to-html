@@ -961,11 +961,17 @@
     liveRoot.addEventListener("mouseover", onMouseover);
     document.addEventListener("mouseup", onMouseup);
 
-    // ---- Click outside any table deactivates ----
+    // ---- Click outside the ACTIVE TABLE deactivates ----
+    // The toolbar stays only while the click lands inside the active table
+    // (or the toolbar itself). Clicking anywhere else — prose elsewhere in
+    // the Live view, another table (which then activates), or outside the
+    // editor entirely — deactivates. Registered in the capture phase so a
+    // click on another table's cell deactivates this one just before the
+    // delegated cell handler activates the new table.
     function onOutsideMousedown(e) {
       if (!activeTable) return;
-      if (liveRoot.contains(e.target)) return; // inside the editor surface
       if (toolbar && toolbar.contains(e.target)) return;
+      if (activeTable.contains(e.target)) return;
       deactivateAll();
     }
     document.addEventListener("mousedown", onOutsideMousedown, true);

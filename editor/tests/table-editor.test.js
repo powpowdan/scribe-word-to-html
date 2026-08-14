@@ -426,3 +426,72 @@ describe("Complex-table accessibility (H43)", () => {
     expect(simple.querySelector("td[headers]")).toBe(null);
   });
 });
+
+// ----- Toolbar deactivation on click-away (mount lifecycle) -----
+describe("Table toolbar hides when clicking outside the active table", () => {
+  function setup(html) {
+    const root = document.createElement("div");
+    root.innerHTML = html;
+    document.body.appendChild(root);
+    const toolbar = document.createElement("div");
+    toolbar.hidden = true;
+    document.body.appendChild(toolbar);
+    const api = T.mountTableEditor({ liveRoot: root, toolbar, onChange() {} });
+    return { root, toolbar, api };
+  }
+  function mousedown(el) {
+    el.dispatchEvent(new win.Event("mousedown", { bubbles: true }));
+  }
+
+  it("clicking prose elsewhere in the Live view deactivates the table and hides the toolbar", () => {
+    const { root, toolbar, api } = setup(
+      "<p>prose</p><table><tbody><tr><td>cell</td></tr></tbody></table>"
+    );
+
+    mousedown(root.querySelector("td")); // activate
+    expect(toolbar.hidden).toBe(false);
+    expect(api.getActiveTable()).not.toBe(null);
+
+    mousedown(root.querySelector("p")); // click away, still inside the Live view
+    expect(toolbar.hidden).toBe(true);
+    expect(api.getActiveTable()).toBe(null);
+
+    api.detach();
+    root.remove();
+    toolbar.remove();
+  });
+
+  it("clicking another table switches activation (deactivate old, activate new)", () => {
+    const { root, toolbar, api } = setup(
+      "<table id=\"t1\"><tbody><tr><td>a</td></tr></tbody></table>" +
+        "<table id=\"t2\"><tbody><tr><td>b</td></tr></tbody></table>"
+    );
+
+    mousedown(root.querySelector("#t1 td"));
+    expect(api.getActiveTable().id).toBe("t1");
+
+    mousedown(root.querySelector("#t2 td")); // capture deactivates t1, delegation activates t2
+    expect(toolbar.hidden).toBe(false);
+    expect(api.getActiveTable().id).toBe("t2");
+
+    api.detach();
+    root.remove();
+    toolbar.remove();
+  });
+
+  it("clicking inside the active table keeps the toolbar open", () => {
+    const { root, toolbar, api } = setup(
+      "<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>"
+    );
+
+    const cells = root.querySelectorAll("td");
+    mousedown(cells[0]);
+    mousedown(cells[1]); // still the same table
+    expect(toolbar.hidden).toBe(false);
+    expect(api.getActiveTable()).not.toBe(null);
+
+    api.detach();
+    root.remove();
+    toolbar.remove();
+  });
+});
