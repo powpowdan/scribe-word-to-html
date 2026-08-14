@@ -21,6 +21,7 @@ const srcDir = path.resolve(process.cwd(), "src");
 const DEFAULT_ORDER = [
   "document-model.js",
   "cleanup.js",
+  "format-html.js",
   "table-editor.js",
   "code-view.js",
   "live-view.js",

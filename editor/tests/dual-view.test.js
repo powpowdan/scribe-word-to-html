@@ -12,6 +12,7 @@ import { loadScribe } from "./_load.js";
 const win = loadScribe([
   "document-model.js",
   "cleanup.js",
+  "format-html.js",
   "code-view.js",
   "live-view.js",
   "sync.js"
