@@ -72,17 +72,48 @@
     return { tables: t, figures: f };
   }
 
-  // Build a nested <ul> from a list of heading elements (document order),
-  // nesting by heading level. Empty sub-lists are pruned afterwards.
-  function buildOnThisPageList(headings) {
+  // Localized "On this page" title (i18n.js may not be loaded in every host).
+  function onThisPageTitle(lang) {
+    if (S.i18n && S.i18n.STRINGS[lang]) return S.i18n.STRINGS[lang].onThisPage;
+    return "On this page";
+  }
+
+  // Build a nested <ul class="lst-spcd"> from a list of heading elements
+  // (document order), nesting by heading level. Optional hierarchical
+  // numbering ("1. ", "1.1. ") prefixes the entry text (entries only — the
+  // document headings themselves are never numbered), and boldTop wraps
+  // top-level (h2) entry anchors in <strong>. Empty sub-lists are pruned.
+  function buildOnThisPageList(headings, opts) {
+    opts = opts || {};
+    const numbered = !!opts.numbered;
+    const boldTop = !!opts.boldH2;
+    const counters = { 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+
     const rootList = document.createElement("ul");
+    rootList.className = "lst-spcd";
     const stack = [{ level: 1, ul: rootList }]; // sentinel parent
     headings.forEach((h) => {
       const level = parseInt(h.tagName.charAt(1), 10);
+
+      let prefix = "";
+      if (numbered) {
+        counters[level]++;
+        for (let l = level + 1; l <= 6; l++) counters[l] = 0;
+        const parts = [];
+        for (let l = 2; l <= level; l++) parts.push(counters[l]);
+        prefix = parts.join(".") + ". ";
+      }
+
       const li = document.createElement("li");
       const a = document.createElement("a");
       a.href = "#" + h.id;
-      a.textContent = h.textContent.trim();
+      if (boldTop && level === 2) {
+        const strong = document.createElement("strong");
+        strong.textContent = prefix + h.textContent.trim();
+        a.appendChild(strong);
+      } else {
+        a.textContent = prefix + h.textContent.trim();
+      }
       li.appendChild(a);
       while (stack.length > 1 && stack[stack.length - 1].level >= level) stack.pop();
       stack[stack.length - 1].ul.appendChild(li);
@@ -97,16 +128,34 @@
     return rootList;
   }
 
-  // Insert/refresh an "On this page" nav built from h2..h{depth} (default h2).
-  // h1 is treated as the page title and excluded. Idempotent: any prior nav we
-  // generated is replaced. Returns true if a nav was inserted.
+  // Remove any previously generated "On this page" block: a bare
+  // nav.gc-toc / legacy nav.on-this-page, or a <details> wrapper that
+  // contains one (the collapsible variant). Makes regeneration idempotent
+  // across variants.
+  function removeExistingOnThisPage(root) {
+    Array.from(root.querySelectorAll("details")).forEach((d) => {
+      if (d.querySelector("nav.gc-toc, nav.on-this-page")) d.remove();
+    });
+    root.querySelectorAll("nav.gc-toc, nav.on-this-page").forEach((n) => n.remove());
+  }
+
+  // Insert/refresh the in-page ToC ("On this page", official GCWeb gc-toc
+  // pattern) built from h2..h{depth} (default h2). h1 is treated as the page
+  // title and excluded. Options:
+  //   depth       — deepest heading level included (2..6, default 2)
+  //   lang        — "en" | "fr" heading/summary text (default en)
+  //   numbered    — hierarchical "1. " / "1.1. " prefixes on entries only
+  //   boldH2      — <strong> on top-level entry anchors
+  //   collapsible — <details><summary>…</summary><nav…/></details> variant
+  // Idempotent: any prior block we generated (any variant) is replaced.
+  // Returns true if a block was inserted.
   function addOnThisPage(root, opts) {
     opts = opts || {};
     const depth = Math.min(Math.max(opts.depth == null ? 2 : opts.depth, 1), 6);
+    const lang = opts.lang === "fr" ? "fr" : "en";
+    const title = onThisPageTitle(lang);
 
-    // Remove a previously-generated nav first (so its heading isn't id'd).
-    const old = root.querySelector("nav.on-this-page");
-    if (old) old.remove();
+    removeExistingOnThisPage(root);
 
     // Make sure the section headings have ids so links resolve.
     const existing = collectExistingIds(root);
@@ -120,14 +169,24 @@
     if (!headings.length) return false;
 
     const nav = document.createElement("nav");
-    nav.className = "on-this-page mrgn-tp-md";
-    nav.setAttribute("aria-label", "On this page");
-    const h2 = document.createElement("h2");
-    h2.textContent = "On this page";
-    nav.appendChild(h2);
-    nav.appendChild(buildOnThisPageList(headings));
+    nav.className = "gc-toc";
+    if (!opts.collapsible) {
+      const h2 = document.createElement("h2");
+      h2.textContent = title;
+      nav.appendChild(h2);
+    }
+    nav.appendChild(buildOnThisPageList(headings, opts));
 
-    root.insertBefore(nav, root.firstChild);
+    if (opts.collapsible) {
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = title;
+      details.appendChild(summary);
+      details.appendChild(nav); // nav without its own heading
+      root.insertBefore(details, root.firstChild);
+    } else {
+      root.insertBefore(nav, root.firstChild);
+    }
     return true;
   }
 

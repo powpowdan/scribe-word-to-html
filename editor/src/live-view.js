@@ -31,6 +31,7 @@
         });
         if (S.normalizeBoldItalic) S.normalizeBoldItalic(clone);
         if (S.ensureTableResponsive) S.ensureTableResponsive(clone);
+        if (S.stripWordBookmarks) S.stripWordBookmarks(clone);
         return S.prettyHTML(clone);
       },
       /** Render HTML into the region without going through the model. */

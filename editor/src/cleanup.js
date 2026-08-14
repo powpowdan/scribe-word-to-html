@@ -83,6 +83,23 @@
     });
   }
 
+  // Remove Word-internal bookmark anchors. Word marks its own bookmarks with
+  // a leading underscore in the name attribute (_Toc*, _Ref*, _Hlk*, and the
+  // newer _the_heading_title style). An empty anchor is removed outright; one
+  // wrapping content is unwrapped so the content survives. Author-made
+  // bookmarks (no leading underscore) are kept.
+  function stripWordBookmarks(container) {
+    container.querySelectorAll("a[name]").forEach((a) => {
+      const name = a.getAttribute("name") || "";
+      if (!name.startsWith("_")) return;
+      if (!a.textContent.trim() && !a.querySelector("img, table, ul, ol")) {
+        removeElement(a);
+      } else {
+        unwrap(a);
+      }
+    });
+  }
+
   // ===========================================================================
   // INPUT HELPERS  (legacy L624-L639)
   // ===========================================================================
@@ -162,19 +179,8 @@
 
     // Pass 2: targeted transformations
 
-    // Word-internal anchors (_Toc*, _Ref*, _Hlk*)
-    container.querySelectorAll("a[name]").forEach((a) => {
-      const name = a.getAttribute("name") || "";
-      if (/^_Toc|^_Ref|^_Hlk/.test(name)) {
-        if (!a.textContent.trim()) {
-          removeElement(a);
-        } else {
-          // Strip the name attr; keep the anchor as a real <a> only if href present, else unwrap
-          a.removeAttribute("name");
-          if (!a.getAttribute("href")) unwrap(a);
-        }
-      }
-    });
+    // Word-internal bookmark anchors (_Toc*, _Ref*, _Hlk*, _heading_title…)
+    stripWordBookmarks(container);
 
     // b → strong, i → em
     normalizeBoldItalic(container);
@@ -435,6 +441,9 @@
     // Guarantee the WET table-responsive wrapper on every table in output.
     ensureTableResponsive(clone);
 
+    // Drop any Word bookmark anchors that survived earlier editing.
+    stripWordBookmarks(clone);
+
     // Convert canvas-only image placeholders into HTML comments for output
     clone.querySelectorAll(".img-placeholder").forEach((el) => {
       const label = el.getAttribute("data-img-alt") || "image";
@@ -469,6 +478,7 @@
   S.serializeForOutput = serializeForOutput;
   S.normalizeBoldItalic = normalizeBoldItalic;
   S.ensureTableResponsive = ensureTableResponsive;
+  S.stripWordBookmarks = stripWordBookmarks;
 
   S._cleanupInternals = {
     DEFAULT_REMOVE_ATTRS,

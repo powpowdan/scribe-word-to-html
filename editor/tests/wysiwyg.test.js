@@ -48,13 +48,25 @@ describe("wysiwyg toolbar wiring", () => {
     // only inside lists) — covered in wysiwyg-indent.test.js, not blind-dispatched.
   });
 
-  it("createLink prompts for a URL and dispatches createLink with it", () => {
+  it("createLink with a selection prompts for a URL and dispatches createLink with it", () => {
     win.prompt = () => "https://example.com";
     const live = document.createElement("div");
+    live.innerHTML = "<p>some text</p>";
+    document.body.appendChild(live);
     const tb = makeToolbar(["createLink"]);
     T.mountWysiwyg({ liveRoot: live, toolbar: tb, onChange() {} });
+    // Establish a selection inside the live root (editLink requires a range).
+    const text = live.querySelector("p").firstChild;
+    const r = document.createRange();
+    r.setStart(text, 0);
+    r.setEnd(text, 9);
+    const sel = document.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+
     tb.querySelector("[data-cmd='createLink']").dispatchEvent(new win.Event("click"));
     expect(document._calls.some((c) => c[0] === "createLink" && c[2] === "https://example.com")).toBe(true);
+    live.remove();
   });
 
   it("createLink does nothing when the prompt is cancelled", () => {

@@ -26,9 +26,10 @@ describe("buildOutline", () => {
     ]);
   });
 
-  it("excludes headings inside an 'On this page' nav (indexes stay contiguous)", () => {
+  it("excludes headings inside a generated ToC nav (gc-toc + legacy)", () => {
     const root = rootWith(
-      '<nav class="on-this-page"><h2>On this page</h2><ul><li><a href="#x">x</a></li></ul></nav>' +
+      '<nav class="gc-toc"><h2>On this page</h2><ul><li><a href="#x">x</a></li></ul></nav>' +
+        '<nav class="on-this-page"><h2>Old block</h2></nav>' +
         '<h2 id="x">Real section</h2>'
     );
     const outline = Q.buildOutline(root);
@@ -107,3 +108,10 @@ describe("detectIssues", () => {
     expect(Q.detectIssues(root)).toEqual([]);
   });
 });
+
+  it("a named anchor without href is a bookmark, not a bad-link issue", () => {
+    const root = rootWith('<p>x<a name="_bookmark"></a></p><a href="#">real</a>');
+    const issues = Q.detectIssues(root).filter((i) => i.type === "bad-link");
+    expect(issues.length).toBe(1); // only the href="#" link
+    expect(issues[0].message).toContain("real");
+  });

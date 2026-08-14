@@ -228,3 +228,88 @@ describe("NBSP wiring (mount)", () => {
     expect(notes[0][1]).toBe("warn");
   });
 });
+
+describe("createLink edit flow (prefill / unlink / no-op)", () => {
+  beforeEach(() => {
+    document.execCommand = (...a) => (document._calls = document._calls || []).push(a);
+    document.queryCommandState = () => false;
+    document._calls = [];
+  });
+
+  function makeLinkToolbar() {
+    const tb = document.createElement("div");
+    const btn = document.createElement("button");
+    btn.setAttribute("data-cmd", "createLink");
+    tb.appendChild(btn);
+    return tb;
+  }
+
+  it("prompt is pre-filled with the existing href when the selection is inside a link", () => {
+    const root = rootWith('<p><a href="https://old.example">old link</a></p>');
+    const anchorText = root.querySelector("a").firstChild;
+    const prompts = [];
+    win.prompt = (msg, def) => { prompts.push(def); return null; }; // cancel
+    const tb = makeLinkToolbar();
+    W.mountWysiwyg({ liveRoot: root, toolbar: tb, onChange() {} });
+
+    select(root, anchorText, 0, anchorText, 8);
+    tb.querySelector("[data-cmd='createLink']").dispatchEvent(new win.Event("click"));
+
+    expect(prompts).toEqual(["https://old.example"]);
+  });
+
+  it("editing in place: new URL updates the anchor without execCommand", () => {
+    const root = rootWith('<p><a href="https://old.example">old link</a></p>');
+    win.prompt = () => "https://new.example";
+    const tb = makeLinkToolbar();
+    W.mountWysiwyg({ liveRoot: root, toolbar: tb, onChange() {} });
+
+    const anchorText = root.querySelector("a").firstChild;
+    select(root, anchorText, 0, anchorText, 8);
+    tb.querySelector("[data-cmd='createLink']").dispatchEvent(new win.Event("click"));
+
+    expect(root.querySelector("a").getAttribute("href")).toBe("https://new.example");
+    expect(root.querySelector("a").textContent).toBe("old link"); // text kept
+    expect(document._calls.length).toBe(0); // setAttribute path, not execCommand
+  });
+
+  it("clearing the field removes the link, keeping the text", () => {
+    const root = rootWith('<p>before <a href="https://x.example">link text</a> after</p>');
+    win.prompt = () => ""; // cleared + OK
+    const tb = makeLinkToolbar();
+    W.mountWysiwyg({ liveRoot: root, toolbar: tb, onChange() {} });
+
+    const anchorText = root.querySelector("a").firstChild;
+    select(root, anchorText, 0, anchorText, 9);
+    tb.querySelector("[data-cmd='createLink']").dispatchEvent(new win.Event("click"));
+
+    expect(root.querySelector("a")).toBe(null);
+    expect(root.querySelector("p").textContent).toBe("before link text after");
+  });
+
+  it("cancel (prompt returns null) changes nothing", () => {
+    const root = rootWith('<p><a href="https://old.example">old link</a></p>');
+    win.prompt = () => null;
+    const tb = makeLinkToolbar();
+    W.mountWysiwyg({ liveRoot: root, toolbar: tb, onChange() {} });
+
+    const anchorText = root.querySelector("a").firstChild;
+    select(root, anchorText, 0, anchorText, 8);
+    tb.querySelector("[data-cmd='createLink']").dispatchEvent(new win.Event("click"));
+
+    expect(root.querySelector("a").getAttribute("href")).toBe("https://old.example");
+  });
+
+  it("no anchor selected keeps the https:// default and dispatches createLink", () => {
+    const root = rootWith("<p>plain text</p>");
+    win.prompt = () => "https://make.example";
+    const tb = makeLinkToolbar();
+    W.mountWysiwyg({ liveRoot: root, toolbar: tb, onChange() {} });
+
+    const text = root.querySelector("p").firstChild;
+    select(root, text, 0, text, 10);
+    tb.querySelector("[data-cmd='createLink']").dispatchEvent(new win.Event("click"));
+
+    expect(document._calls.some((c) => c[0] === "createLink" && c[2] === "https://make.example")).toBe(true);
+  });
+});

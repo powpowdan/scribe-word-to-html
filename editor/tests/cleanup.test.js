@@ -211,3 +211,61 @@ describe("ensureTableResponsive (WET wrapper guarantee)", () => {
     expect(out.indexOf("table-responsive")).toBeLessThan(out.indexOf("<table"));
   });
 });
+
+describe("stripWordBookmarks (Word bookmark anchors)", () => {
+  it("removes empty _-prefixed bookmark anchors (heading-title style)", () => {
+    const div = document.createElement("div");
+    div.innerHTML = '<h2 id="t">Title<a name="_the_title_from_word"></a></h2><p>body</p>';
+    win.Scribe.stripWordBookmarks(div);
+    expect(div.querySelector("a")).toBe(null);
+    expect(div.querySelector("h2").textContent).toBe("Title");
+  });
+
+  it("unwraps a bookmark anchor that wraps content (content survives)", () => {
+    const div = document.createElement("div");
+    div.innerHTML = '<p><a name="_Toc12345">kept text</a></p>';
+    win.Scribe.stripWordBookmarks(div);
+    expect(div.querySelector("a")).toBe(null);
+    expect(div.querySelector("p").textContent).toBe("kept text");
+  });
+
+  it("still covers the classic _Toc/_Ref/_Hlk empty bookmarks", () => {
+    const div = document.createElement("div");
+    div.innerHTML = '<a name="_Toc1"></a><a name="_Ref2"></a><a name="_Hlk3"></a><p>x</p>';
+    win.Scribe.stripWordBookmarks(div);
+    expect(div.querySelectorAll("a").length).toBe(0);
+  });
+
+  it("keeps author-made bookmarks (no leading underscore)", () => {
+    const div = document.createElement("div");
+    div.innerHTML = '<a name="section-anchor"></a><p>x</p>';
+    win.Scribe.stripWordBookmarks(div);
+    expect(div.querySelector('a[name="section-anchor"]')).not.toBe(null);
+  });
+
+  it("sanitizeWordHtml strips _heading-style bookmarks on paste", () => {
+    const out = win.Scribe.sanitizeWordHtml('<p>Hi<a name="_Overview_word"></a></p>');
+    expect(out).not.toContain("_Overview_word");
+    expect(out).toContain("Hi");
+  });
+
+  it("serializeForOutput heals a document that still carries bookmarks", () => {
+    const out = win.Scribe.serializeForOutput('<p><a name="_old_bookmark"></a>text</p>');
+    expect(out).not.toContain("_old_bookmark");
+    expect(out).toContain("text");
+  });
+
+  it("liveView.read() heals bookmarks into the model", async () => {
+    // Loaded via dynamic import to keep this file's loader surface small.
+    const { loadScribe } = await import("./_load.js");
+    const w = loadScribe(["document-model.js", "cleanup.js", "format-html.js", "live-view.js"]);
+    const doc = w.document;
+    const el = doc.createElement("div");
+    doc.body.appendChild(el);
+    const model = new w.Scribe.DocumentModel("");
+    const lv = w.Scribe.createLiveView(el, model, { ChangeSource: w.Scribe.ChangeSource });
+    el.innerHTML = '<p>keep<a name="_the_heading"></a> this</p>';
+    expect(lv.read()).not.toContain("_the_heading");
+    expect(lv.read()).toContain("keep");
+  });
+});

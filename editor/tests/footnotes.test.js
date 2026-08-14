@@ -4,7 +4,7 @@ import { loadScribe } from "./_load.js";
 // Pure-logic coverage for the footnote markup builders (WET wb-fnote pattern).
 // The caret insertion (Selection/Range) is browser-verified.
 
-const win = loadScribe(["footnotes.js"]);
+const win = loadScribe(["i18n.js", "footnotes.js"]);
 const F = win.Scribe.footnotes;
 const document = win.document;
 
@@ -83,5 +83,43 @@ describe("ensureFootnotesAside", () => {
     dl.appendChild(F.buildFootnoteEntry(1, "first"));
     expect(root.querySelectorAll("aside.wb-fnote dd")).toHaveLength(1);
     expect(F.nextFootnoteNumber(root)).toBe(2);
+  });
+});
+
+// ----- Bilingual (official WET French strings) -----
+describe("footnotes French output", () => {
+  it("FR reference uses 'Note de bas de page ' in the wb-inv span", () => {
+    const sup = F.buildFootnoteReference(2, "fr");
+    expect(sup.querySelector("span.wb-inv").textContent).toBe("Note de bas de page ");
+    expect(sup.querySelector("a").textContent.replace("Note de bas de page ", "")).toBe("2");
+  });
+
+  it("FR entry dt uses 'Note de bas de page N'", () => {
+    const frag = F.buildFootnoteEntry(2, "Source.", "fr");
+    expect(frag.querySelector("dt").textContent).toBe("Note de bas de page 2");
+  });
+
+  it("FR return link has the prefix and NO trailing suffix segment (per WET FR)", () => {
+    const frag = F.buildFootnoteEntry(1, "x", "fr");
+    const a = frag.querySelector("p.fn-rtn a");
+    expect(a.textContent).toContain("Retour à la référence de la note de bas de page");
+    expect(a.querySelectorAll("span.wb-inv")).toHaveLength(1); // EN has 2 (prefix+suffix)
+  });
+
+  it("EN return link keeps both wb-inv segments (prefix + ' referrer')", () => {
+    const frag = F.buildFootnoteEntry(1, "x", "en");
+    const spans = frag.querySelectorAll("p.fn-rtn a span.wb-inv");
+    expect(spans).toHaveLength(2);
+    expect(spans[0].textContent).toBe("Return to footnote ");
+    expect(spans[1].textContent).toBe(" referrer");
+  });
+
+  it("FR aside heading is 'Notes de bas de page' and refreshes on language change", () => {
+    const root = rootWith("<p>doc</p>");
+    F.ensureFootnotesAside(root, "fr");
+    expect(root.querySelector("aside.wb-fnote h2#fn").textContent).toBe("Notes de bas de page");
+    F.ensureFootnotesAside(root, "en"); // same aside, heading refreshed
+    expect(root.querySelector("aside.wb-fnote h2#fn").textContent).toBe("Footnotes");
+    expect(root.querySelectorAll("aside.wb-fnote")).toHaveLength(1);
   });
 });

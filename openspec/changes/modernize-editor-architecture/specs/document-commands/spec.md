@@ -32,28 +32,39 @@ The command SHALL also assign stable, unique `id` attributes to every `<table>` 
 - **WHEN** the document contains a `<table>` without an `id`
 - **THEN** after the command runs the table has a unique `id`
 
-### Requirement: Optional On-this-page section generation
+### Requirement: On-this-page / in-page ToC generation (GCWeb gc-toc)
 
-When the On-this-page option is enabled, the command SHALL insert an On-this-page navigation section whose links target the IDs of the document's headings, scoped to the selected heading depth.
+The command SHALL insert the official GCWeb in-page table-of-contents component — the "On this page" pattern — as `<nav class="gc-toc">` containing a heading (no trailing colon) and a nested list of anchor links targeting the document's heading IDs, scoped to the selected heading depth (h2 through h{depth}; h1 is the page title and excluded). The command SHALL support these options: **Numbered** (hierarchical `1.` / `1.1.` prefixes on the entry text only — the document's headings themselves are never numbered), **Bold H2s** (top-level entry anchors wrapped in `<strong>`), and **Collapsible** (a `<details><summary>` wrapper whose summary replaces the nav's heading). Regeneration SHALL be idempotent across variants: any previously generated block — plain nav, collapsible `<details>`, or the earlier `nav.on-this-page` markup — is replaced, never duplicated. The generated heading text SHALL follow the selected publishing language (English "On this page", French "Sur cette page").
 
 #### Scenario: On-this-page links to headings
 
 - **WHEN** the option is enabled with heading depth 2 and the document has `<h2>` headings
-- **THEN** an On-this-page section is inserted containing anchor links to each `<h2>`'s `id`
+- **THEN** a `nav.gc-toc` is inserted containing anchor links to each `<h2>`'s `id`
 
 #### Scenario: Heading depth limits included headings
 
 - **WHEN** the option is enabled with heading depth 2 and the document also contains `<h3>` headings
-- **THEN** the On-this-page section links to `<h2>` elements only and excludes `<h3>` elements
+- **THEN** the ToC links to `<h2>` elements only and excludes `<h3>` elements
 
-### Requirement: Optional Table-of-contents conversion
+#### Scenario: Numbered prefixes apply to entries only
 
-When the Table-of-contents option is enabled, the command SHALL convert the relevant heading structure into a Canada.ca Table-of-contents pattern instead of (or in addition to) the On-this-page section.
+- **WHEN** the Numbered option is enabled
+- **THEN** ToC entry text carries hierarchical prefixes (`1. `, `1.1. `) and the document's headings are unchanged
 
-#### Scenario: Headings converted to ToC pattern
+#### Scenario: Collapsible variant
 
-- **WHEN** the option is enabled and the command runs
-- **THEN** the document contains the Table-of-contents markup rather than a plain On-this-page section
+- **WHEN** the Collapsible option is enabled
+- **THEN** the ToC is wrapped in `<details>` with a summary carrying the title text, and the inner nav carries no heading of its own
+
+#### Scenario: Regeneration across variants leaves no duplicates
+
+- **WHEN** a ToC was generated with the Collapsible option and is regenerated without it
+- **THEN** exactly one `nav.gc-toc` remains and no `<details>` wrapper is left behind
+
+#### Scenario: French title
+
+- **WHEN** the publishing language is French and the ToC is generated
+- **THEN** the ToC heading (or collapsible summary) reads "Sur cette page"
 
 ### Requirement: Doc-wide non-breaking-space validation
 

@@ -19,8 +19,9 @@
   const DEFAULT_COUNT_SELECTORS = ["h1", "h2", "h3", "h4", "h5", "h6", "table", "ul", "ol", "figure"];
 
   function isRealHeading(h) {
-    // Skip headings that belong to a generated "On this page" nav.
-    return !h.closest("nav.on-this-page");
+    // Skip headings that belong to a generated "On this page" ToC block
+    // (current gc-toc component or the earlier on-this-page variant).
+    return !h.closest("nav.gc-toc") && !h.closest("nav.on-this-page");
   }
 
   // Flat list of { level, id, text, index } in document order. `index` is the
@@ -100,11 +101,14 @@
       });
     }
 
-    // Links with empty / placeholder href.
+    // Links with empty / placeholder href. A name-only anchor (no href) is a
+    // bookmark, not a link — not an issue (Word bookmarks are stripped at the
+    // boundaries, but mid-edit they can be present without being flagged).
     let linkIdx = 0;
     root.querySelectorAll("a").forEach((a) => {
       const locator = { kind: "link", index: linkIdx++ };
       const href = (a.getAttribute("href") || "").trim();
+      if (!href && a.getAttribute("name")) return; // bookmark, not a link
       if (!href || href === "#") {
         const label = a.textContent.trim();
         issues.push({ type: "bad-link", message: "Link with empty or placeholder href" + (label ? ": \"" + label + "\"" : ""), id: a.id || null, locator });

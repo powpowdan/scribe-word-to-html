@@ -22,6 +22,7 @@ const DEFAULT_ORDER = [
   "document-model.js",
   "cleanup.js",
   "format-html.js",
+  "i18n.js",
   "table-editor.js",
   "code-view.js",
   "live-view.js",

@@ -239,6 +239,47 @@
       saveSelection();
     }
 
+    // Nearest enclosing <a> of the current selection, or null.
+    function closestAnchor(node) {
+      let el = node && node.nodeType === Node.ELEMENT_NODE ? node : node && node.parentElement;
+      while (el && el !== liveRoot) {
+        if (el.tagName === "A") return el;
+        el = el.parentElement;
+      }
+      return null;
+    }
+
+    // Edit-or-create a link at the selection:
+    //   • selection inside an existing <a>  → prompt pre-filled with its href
+    //   • new URL entered                   → create/update the link
+    //   • field cleared + OK                → remove the link (text kept)
+    //   • Cancel                            → no change
+    function editLink() {
+      liveRoot.focus();
+      const range = currentRange();
+      if (!range) return;
+      const anchor = closestAnchor(range.startContainer);
+      const existing = anchor ? anchor.getAttribute("href") || "" : "";
+      const url = window.prompt("Link URL (clear to remove the link):", existing || "https://");
+      if (url === null) return; // cancelled
+      if (anchor && !url.trim()) {
+        anchor.replaceWith(...Array.from(anchor.childNodes));
+        flush();
+        refreshActive();
+        saveSelection();
+        return;
+      }
+      if (!url.trim()) return; // nothing to create
+      if (anchor) {
+        anchor.setAttribute("href", url.trim()); // edit in place
+      } else {
+        exec("createLink", url.trim());
+      }
+      flush();
+      refreshActive();
+      saveSelection();
+    }
+
     function runCommand(cmd) {
       liveRoot.focus();
       if (cmd === "indent") {
@@ -250,12 +291,10 @@
         return;
       }
       if (cmd === "createLink") {
-        const url = window.prompt("Link URL:", "https://");
-        if (!url) return;
-        exec("createLink", url);
-      } else {
-        exec(cmd, null);
+        editLink();
+        return;
       }
+      exec(cmd, null);
       flush();
       refreshActive();
     }

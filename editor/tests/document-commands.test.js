@@ -4,7 +4,7 @@ import { loadScribe } from "./_load.js";
 // Headless coverage for the document-structure commands (Add IDs, On this
 // page). Pure DOM operations on a root element.
 
-const win = loadScribe(["document-commands.js"]);
+const win = loadScribe(["i18n.js", "document-commands.js"]);
 const S = win.Scribe.documentCommands;
 const document = win.document;
 
@@ -61,7 +61,7 @@ describe("addIds", () => {
   });
 });
 
-describe("addOnThisPage", () => {
+describe("addOnThisPage (gc-toc)", () => {
   function sampleDoc() {
     return rootWith(
       "<h1>Page title</h1>" +
@@ -75,9 +75,9 @@ describe("addOnThisPage", () => {
   it("builds a flat list of h2 links when depth is 2", () => {
     const root = sampleDoc();
     S.addOnThisPage(root, { depth: 2 });
-    const nav = root.querySelector("nav.on-this-page");
+    const nav = root.querySelector("nav.gc-toc");
     expect(nav).not.toBe(null);
-    expect(nav.querySelector("h2").textContent).toBe("On this page");
+    expect(nav.querySelector("h2").textContent).toBe("On this page"); // no colon
     const topLinks = Array.from(nav.querySelectorAll("ul > li > a")).map((a) => a.textContent);
     expect(topLinks).toEqual(["Overview", "Details", "Funding"]);
   });
@@ -85,7 +85,7 @@ describe("addOnThisPage", () => {
   it("nests h3 under its parent h2 when depth is 3", () => {
     const root = sampleDoc();
     S.addOnThisPage(root, { depth: 3 });
-    const nav = root.querySelector("nav.on-this-page");
+    const nav = root.querySelector("nav.gc-toc");
     const detailsItem = Array.from(nav.querySelectorAll("ul > li")).find((li) =>
       li.firstChild.textContent.startsWith("Details")
     );
@@ -97,7 +97,7 @@ describe("addOnThisPage", () => {
     const root = sampleDoc();
     S.addOnThisPage(root, { depth: 3 });
     const ids = new Set(Array.from(root.querySelectorAll("[id]")).map((el) => el.id));
-    root.querySelectorAll("nav.on-this-page a").forEach((a) => {
+    root.querySelectorAll("nav.gc-toc a").forEach((a) => {
       const target = a.getAttribute("href").slice(1);
       expect(ids.has(target)).toBe(true);
     });
@@ -106,7 +106,7 @@ describe("addOnThisPage", () => {
   it("excludes h1 (the page title)", () => {
     const root = sampleDoc();
     S.addOnThisPage(root, { depth: 2 });
-    const texts = Array.from(root.querySelectorAll("nav.on-this-page a")).map((a) => a.textContent);
+    const texts = Array.from(root.querySelectorAll("nav.gc-toc a")).map((a) => a.textContent);
     expect(texts).not.toContain("Page title");
   });
 
@@ -114,13 +114,96 @@ describe("addOnThisPage", () => {
     const root = sampleDoc();
     S.addOnThisPage(root, { depth: 2 });
     S.addOnThisPage(root, { depth: 2 });
-    expect(root.querySelectorAll("nav.on-this-page")).toHaveLength(1);
+    expect(root.querySelectorAll("nav.gc-toc")).toHaveLength(1);
   });
 
   it("returns false and inserts nothing when there are no h2 headings", () => {
     const root = rootWith("<h1>Only a title</h1><p>no sections</p>");
     const ok = S.addOnThisPage(root, { depth: 2 });
     expect(ok).toBe(false);
+    expect(root.querySelector("nav.gc-toc")).toBe(null);
+  });
+
+  // ----- Options from the legacy ToC builder (merged feature) -----
+
+  it("numbered: hierarchical prefixes on entries only (headings untouched)", () => {
+    const root = sampleDoc();
+    S.addOnThisPage(root, { depth: 3, numbered: true });
+    const nav = root.querySelector("nav.gc-toc");
+    // Top-level entries = direct li children of the root list (their own
+    // anchor precedes any nested sub-list).
+    const topList = nav.querySelector("ul.lst-spcd");
+    const topLinks = Array.from(topList.children).map((li) => li.querySelector("a").textContent);
+    expect(topLinks).toEqual(["1. Overview", "2. Details", "3. Funding"]);
+    const subs = Array.from(nav.querySelectorAll("ul > li > ul > li > a")).map((a) => a.textContent);
+    expect(subs).toEqual(["2.1. Sub A", "2.2. Sub B"]);
+    // The document headings themselves are never numbered (the first content
+    // h2 — not the ToC's own h2, which is "On this page").
+    const contentH2 = Array.from(root.querySelectorAll("h2")).find((h) => !h.closest("nav.gc-toc"));
+    expect(contentH2.textContent).toBe("Overview");
+  });
+
+  it("boldH2: top-level entry anchors wrap their text in <strong>", () => {
+    const root = sampleDoc();
+    S.addOnThisPage(root, { depth: 2, boldH2: true });
+    const nav = root.querySelector("nav.gc-toc");
+    const first = nav.querySelector("ul > li > a");
+    expect(first.querySelector("strong").textContent).toBe("Overview");
+  });
+
+  it("collapsible: details/summary variant, nav carries no heading", () => {
+    const root = sampleDoc();
+    S.addOnThisPage(root, { depth: 2, collapsible: true });
+    const details = root.querySelector("details");
+    expect(details).not.toBe(null);
+    expect(details.querySelector("summary").textContent).toBe("On this page");
+    const nav = details.querySelector("nav.gc-toc");
+    expect(nav).not.toBe(null);
+    expect(nav.querySelector("h2")).toBe(null); // summary replaces the heading
+  });
+
+  it("idempotent across variants — collapsible then plain leaves no <details>", () => {
+    const root = sampleDoc();
+    S.addOnThisPage(root, { depth: 2, collapsible: true });
+    S.addOnThisPage(root, { depth: 2 }); // regenerate plain
+    expect(root.querySelectorAll("nav.gc-toc")).toHaveLength(1);
+    expect(root.querySelector("details")).toBe(null);
+  });
+
+  it("replaces a legacy nav.on-this-page block from earlier editor versions", () => {
+    const root = sampleDoc();
+    const legacy = document.createElement("nav");
+    legacy.className = "on-this-page";
+    root.insertBefore(legacy, root.firstChild);
+    S.addOnThisPage(root, { depth: 2 });
     expect(root.querySelector("nav.on-this-page")).toBe(null);
+    expect(root.querySelectorAll("nav.gc-toc")).toHaveLength(1);
+  });
+
+  // ----- Bilingual -----
+
+  it("FR: heading and links use the official French title", () => {
+    const root = sampleDoc();
+    S.addOnThisPage(root, { depth: 2, lang: "fr" });
+    const nav = root.querySelector("nav.gc-toc");
+    expect(nav.querySelector("h2").textContent).toBe("Sur cette page");
+    expect(nav.querySelectorAll("ul > li > a").length).toBe(3);
+  });
+
+  it("FR collapsible: summary text is French", () => {
+    const root = sampleDoc();
+    S.addOnThisPage(root, { depth: 2, lang: "fr", collapsible: true });
+    expect(root.querySelector("details summary").textContent).toBe("Sur cette page");
+  });
+
+  it("switching language never rewrites an existing block (non-retroactive)", () => {
+    const root = sampleDoc();
+    S.addOnThisPage(root, { depth: 2, lang: "en" });
+    // User flips the switch to FR (simulated)…
+    if (win.Scribe.i18n) win.Scribe.i18n.setLanguage("fr");
+    // …and the already-generated block is untouched until explicitly regenerated.
+    expect(root.querySelector("nav.gc-toc h2").textContent).toBe("On this page");
+    S.addOnThisPage(root, { depth: 2, lang: "fr" }); // explicit regen
+    expect(root.querySelector("nav.gc-toc h2").textContent).toBe("Sur cette page");
   });
 });

@@ -20,6 +20,10 @@
         <p class="app-tagline">Paste Word content. Edit in Live or Code. Copy clean Canada.ca HTML.</p>
       </div>
     </div>
+    <div class="lang-switch btn-group btn-group-sm" role="group" aria-label="Publishing language for generated text">
+      <button type="button" class="btn btn-outline-primary active" id="langEn" aria-pressed="true">EN</button>
+      <button type="button" class="btn btn-outline-primary" id="langFr" aria-pressed="false">FR</button>
+    </div>
   </nav>
 
   <main class="app-shell">
@@ -70,6 +74,20 @@
               <option value="5">5 (h2 → h5)</option>
               <option value="6">6 (h2 → h6)</option>
             </select>
+            <div class="d-flex flex-wrap gap-3 mb-2 small">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="otpNumbered">
+                <label class="form-check-label" for="otpNumbered">Numbered</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="otpBold">
+                <label class="form-check-label" for="otpBold">Bold H2s</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="otpCollapse">
+                <label class="form-check-label" for="otpCollapse">Collapsible</label>
+              </div>
+            </div>
             <button type="button" class="btn btn-outline-primary btn-sm w-100" id="onThisPageBtn">
               <i class="fa-solid fa-list-ul me-1"></i>Insert "On this page"
             </button>
@@ -290,6 +308,7 @@
   <script src="src/document-model.js"></script>
   <script src="src/cleanup.js"></script>
   <script src="src/format-html.js"></script>
+  <script src="src/i18n.js"></script>
   <script src="src/table-editor.js"></script>
   <script src="src/code-view.js"></script>
   <script src="src/live-view.js"></script>

@@ -71,6 +71,11 @@ The panel SHALL list specific items in the document that the author should revie
 - **WHEN** the document has a coherent heading hierarchy, ids on headings, and none of the flagged conditions
 - **THEN** the review list shows that no issues were found
 
+#### Scenario: Named anchor without href is not a link issue
+
+- **WHEN** the document contains an anchor with a `name` attribute and no `href` (a bookmark)
+- **THEN** it is not listed as a bad-link issue
+
 #### Scenario: Review item navigates to its location
 
 - **WHEN** the user selects a review item that has a target id
