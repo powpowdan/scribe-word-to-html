@@ -547,3 +547,92 @@ describe("Caption fields get suggestion placeholders on table activation", () =>
     ctx.cleanup();
   });
 });
+
+// ----- Indent is a margin change only (no hidden formatting) -----
+describe("Indent does not alter bolding or alignment", () => {
+  function cell(html) {
+    return makeTable("<table><tbody><tr>" + html + "</tr></tbody></table>").querySelector("td, th");
+  }
+
+  it("the indent wrapper carries only the margin class (no fnt-nrml, no text-left)", () => {
+    const td = cell("<td>x</td>");
+    td.classList.add("selected");
+    T.indent(td.closest("table"), 1);
+    const wrapper = td.querySelector("div.mrgn-lft-md");
+    expect(wrapper).not.toBe(null);
+    expect(wrapper.className).toBe("mrgn-lft-md");
+  });
+
+  it("indent keeps th visually bold (no fnt-nrml anywhere in the cell)", () => {
+    const th = cell("<th>total</th>");
+    th.classList.add("selected");
+    T.indent(th.closest("table"), 1);
+    expect(th.classList.contains("fnt-nrml")).toBe(false);
+    expect(th.querySelector("div.fnt-nrml")).toBe(null);
+  });
+
+  it("indent preserves an existing <strong> in a td", () => {
+    const td = cell("<td><strong>bold</strong></td>");
+    td.classList.add("selected");
+    T.indent(td.closest("table"), 1);
+    expect(td.querySelector("strong").textContent).toBe("bold");
+  });
+
+  it("bold toggle round-trips on an indented td without double-wrapping", () => {
+    const td = cell("<td>plain</td>");
+    td.classList.add("selected");
+    const table = td.closest("table");
+    T.indent(table, 1);
+
+    T.toggleBold(table); // bold
+    let wrapper = td.querySelector("div.mrgn-lft-md");
+    expect(wrapper.firstChild && wrapper.firstChild.nodeName).toBe("STRONG");
+    expect(td.querySelector("div strong").textContent).toBe("plain"); // strong inside the wrapper
+
+    T.toggleBold(table); // un-bold
+    wrapper = td.querySelector("div.mrgn-lft-md");
+    expect(td.querySelector("strong")).toBe(null);
+    expect(wrapper.textContent).toBe("plain");
+    expect(td.querySelectorAll("div.mrgn-lft-md").length).toBe(1); // no second wrapper
+  });
+
+  it("bold on an indented th restores visual bold by clearing fnt-nrml on the th", () => {
+    const th = cell('<th class="fnt-nrml">total</th>');
+    th.classList.add("selected");
+    T.indent(th.closest("table"), 1);
+    T.toggleBold(th.closest("table"));
+    expect(th.classList.contains("fnt-nrml")).toBe(false);
+  });
+
+  it("the format pass strips fnt-nrml/text-left from legacy indent wrappers", () => {
+    const table = makeTable(
+      '<table><caption class="text-left fnt-nrml">Table: 1<br><strong>Title</strong></caption>' +
+      "<thead><tr><th class=\"fnt-nrml\"><div class=\"text-left fnt-nrml mrgn-lft-md\">A</div></th></tr></thead>" +
+      '<tbody><tr><td class="text-right"><div class="text-left fnt-nrml mrgn-lft-lg">1</div></td></tr></tbody></table>'
+    );
+    T.formatTableOnClean(table, { scope: true });
+    const wrappers = table.querySelectorAll("div.mrgn-lft-md, div.mrgn-lft-lg");
+    wrappers.forEach((w) => {
+      expect(w.classList.contains("fnt-nrml")).toBe(false);
+      expect(w.classList.contains("text-left")).toBe(false);
+      expect(w.classList.contains("mrgn-lft-md") || w.classList.contains("mrgn-lft-lg")).toBe(true);
+    });
+    // Deliberate classes elsewhere are untouched: caption styling, th fnt-nrml,
+    // cell alignment (the renamed first body cell keeps its text-right).
+    const caption = table.querySelector("caption");
+    expect(caption.classList.contains("fnt-nrml")).toBe(true);
+    expect(table.querySelector("thead th").classList.contains("fnt-nrml")).toBe(true);
+    expect(table.querySelector("tbody th").classList.contains("text-right")).toBe(true);
+  });
+
+  it("align on an indented cell still controls the effective alignment", () => {
+    const td = cell("<td>x</td>");
+    td.classList.add("selected");
+    const table = td.closest("table");
+    T.indent(table, 1);
+    T.align(table, "right");
+    // The wrapper carries no text-left that would mask the cell's alignment.
+    expect(td.querySelector("div.mrgn-lft-md").classList.contains("text-left")).toBe(false);
+    expect(td.classList.contains("text-right")).toBe(true);
+  });
+});

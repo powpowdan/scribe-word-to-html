@@ -246,6 +246,14 @@
       });
     }
 
+    // Legacy indent wrappers carried fnt-nrml (visually un-bolding th content)
+    // and text-left (masking cell alignment). Indent is a margin change only;
+    // strip those classes from margin wrappers. Deliberate fnt-nrml (caption,
+    // th) and cell-level alignment classes are left alone.
+    table
+      .querySelectorAll("div.mrgn-lft-md, div.mrgn-lft-lg, div.mrgn-lft-xl")
+      .forEach((w) => w.classList.remove("fnt-nrml", "text-left"));
+
     if (preset === "french") {
       applyFrenchNumbers(table);
     }
@@ -470,6 +478,13 @@
     deselectAllCells(table);
   }
 
+  // The margin wrapper indent() creates. Cells (and legacy content) can carry
+  // one; bolding and alignment must operate on its CONTENTS, not the wrapper
+  // itself, or the wrapper's own classes mask the cell's.
+  function cellContentRoot(cell) {
+    return cell.querySelector("div.mrgn-lft-md, div.mrgn-lft-lg, div.mrgn-lft-xl") || cell;
+  }
+
   function indent(table, delta) {
     const levels = ["mrgn-lft-md", "mrgn-lft-lg", "mrgn-lft-xl"];
     const cells = getSelectedCells(table);
@@ -478,7 +493,7 @@
       if (delta > 0) {
         if (!wrapper) {
           wrapper = document.createElement("div");
-          wrapper.classList.add("text-left", "fnt-nrml", levels[0]);
+          wrapper.classList.add(levels[0]);
           while (c.firstChild) wrapper.appendChild(c.firstChild);
           c.appendChild(wrapper);
         } else if (wrapper.classList.contains(levels[0])) {
@@ -511,16 +526,19 @@
       if (value) cell.classList.remove("fnt-nrml");
       else cell.classList.add("fnt-nrml");
     } else {
+      // Operate on the content root so an indent margin wrapper (if any)
+      // stays outside the <strong> — bolding must not wrap the wrapper.
+      const root = cellContentRoot(cell);
       if (value) {
-        if (!cell.firstChild || cell.firstChild.nodeName !== "STRONG") {
+        if (!root.firstChild || root.firstChild.nodeName !== "STRONG") {
           const strong = document.createElement("strong");
-          while (cell.firstChild) strong.appendChild(cell.firstChild);
-          cell.appendChild(strong);
+          while (root.firstChild) strong.appendChild(root.firstChild);
+          root.appendChild(strong);
         }
       } else {
-        const strong = cell.querySelector("strong");
+        const strong = root.querySelector("strong");
         if (strong) unwrap(strong);
-        const b = cell.querySelector("b");
+        const b = root.querySelector("b");
         if (b) unwrap(b);
       }
     }
@@ -528,9 +546,11 @@
 
   function toggleBold(table) {
     const cells = getSelectedCells(table);
-    const allBold = cells.every((c) =>
-      c.nodeName === "TH" ? !c.classList.contains("fnt-nrml") : c.firstChild && c.firstChild.nodeName === "STRONG"
-    );
+    const allBold = cells.every((c) => {
+      if (c.nodeName === "TH") return !c.classList.contains("fnt-nrml");
+      const first = cellContentRoot(c).firstChild;
+      return first && first.nodeName === "STRONG";
+    });
     cells.forEach((c) => setBold(c, !allBold));
   }
 
