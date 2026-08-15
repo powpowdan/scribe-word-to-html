@@ -586,9 +586,10 @@ body {
 .qa-issue { margin: 0.2rem 0; }
 .qa-issue.qa-clickable { cursor: pointer; }
 .qa-issue.qa-clickable:hover { color: var(--scribe-blue); }
+.qa-issue .qa-fix-btn { margin-left: 0.4rem; padding: 0 0.4rem; font-size: 0.72rem; vertical-align: baseline; }
 .qa-skipped-level, .qa-bad-link { color: #b45309; }
 .qa-image-placeholder, .qa-empty-heading { color: #92400e; }
-.qa-heading-no-id, .qa-table-no-id { color: #6b7894; }
+.qa-heading-no-id, .qa-table-no-id, .qa-figure-no-id { color: #6b7894; }
 .qa-count-results { font-size: 0.82rem; font-family: monospace; }
 .qa-count-row { padding: 0.1rem 0; }
 .qa-count-row.qa-count-error { color: #b45309; }
@@ -751,4 +752,90 @@ body {
 .table-toolbar .btn-outline-secondary:hover,
 .table-toolbar .btn-outline-danger:hover {
   transform: none;
+}
+
+/* ==========================================================================
+   View linking (reveal / hover linking / linked scroll)
+   ========================================================================== */
+
+/* Source-line highlight band while hovering a Live element. Sits inside
+ * .code-input-wrap (position: relative) above the highlight overlay;
+ * pointer-events: none keeps the textarea fully interactive. Line metrics
+ * match the code panes' shared monospace geometry. */
+.code-hover-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0;
+  background: rgba(255, 193, 7, 0.12);
+  border-top: 1px solid rgba(255, 193, 7, 0.4);
+  border-bottom: 1px solid rgba(255, 193, 7, 0.4);
+  pointer-events: none;
+  z-index: 2;
+}
+/* Pinned anchor band (click-to-jump): stronger than the transient hover
+ * band — it is the "you are here" marker for the last jump and stays until
+ * the next jump or hover. */
+.code-hover-band.pinned {
+  background: rgba(13, 110, 253, 0.10);
+  border-top-color: rgba(13, 110, 253, 0.45);
+  border-bottom-color: rgba(13, 110, 253, 0.45);
+}
+
+/* Transient highlight on a Live element after reveal-in-live. */
+.scribe-flash {
+  animation: scribe-flash-anim 1.2s ease-out;
+}
+@keyframes scribe-flash-anim {
+  0%, 50% { background-color: rgba(255, 193, 7, 0.35); }
+  100% { background-color: transparent; }
+}
+
+/* Hover-linking highlight on the Live counterpart of hovered code. */
+.scribe-hover-linked {
+  background-color: rgba(255, 193, 7, 0.15);
+  outline: 1px dashed rgba(255, 193, 7, 0.65);
+}
+
+/* ==========================================================================
+   Split view: Live and Code side by side (toggled from the Live header).
+   Full-width mode: the sidebar is hidden, the shell widens, and both panes
+   get most of the screen with independent internal scrolling — the layout
+   where hover linking and linked scrolling are actually visible.
+   ========================================================================== */
+.view-panes.split {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+.view-panes.split > .card {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.view-panes.split > .card.mb-3 {
+  margin-bottom: 0;
+}
+.view-panes.split .live-surface {
+  overflow-y: auto;
+  height: calc(100vh - 220px);
+  min-height: 320px;
+}
+.view-panes.split .code-editor {
+  height: calc(100vh - 280px);
+  min-height: 320px;
+}
+
+/* Full-width split: hide the tool rail, expand the main column past the
+ * 1280px shell, and let the two panes own the screen. */
+body.scribe-split .app-shell {
+  max-width: 1800px;
+}
+body.scribe-split .app-shell .row > aside {
+  display: none;
+}
+body.scribe-split .app-shell .row > section {
+  flex: 0 0 100%;
+  width: 100%;
+  max-width: 100%;
 }

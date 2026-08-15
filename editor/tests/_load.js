@@ -20,8 +20,10 @@ const srcDir = path.resolve(process.cwd(), "src");
 
 const DEFAULT_ORDER = [
   "document-model.js",
+  "history.js",
   "cleanup.js",
   "format-html.js",
+  "source-map.js",
   "i18n.js",
   "table-editor.js",
   "code-view.js",

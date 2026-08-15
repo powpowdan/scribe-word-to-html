@@ -41,31 +41,61 @@
     return Array.from(el.childNodes).some(isBlockElement);
   }
 
-  function emitBlock(el, depth, out) {
+  // Serialization context. `out` accumulates string pieces (the final html is
+  // out.join(""); pieces are pushed fine-grained so join("") is identical to
+  // the previous coarse pushes) while `tokens` records source ranges for the
+  // source map (see source-map.js). Token coordinates are relative to the RAW
+  // joined string; prettyHTMLDetailed shifts them onto the trimmed result.
+  function createCtx() {
+    return { out: [], len: 0, tokens: [] };
+  }
+
+  function push(ctx, s, tok, pad, trail) {
+    if (tok) {
+      ctx.tokens.push({
+        type: tok.type,
+        el: tok.el || null,
+        node: tok.node || null,
+        start: ctx.len + (pad || 0),
+        end: ctx.len + s.length - (trail || 0)
+      });
+    }
+    ctx.out.push(s);
+    ctx.len += s.length;
+  }
+
+  function emitBlock(el, depth, ctx) {
     const tag = el.nodeName.toLowerCase();
-    out.push("\n" + ind(depth) + serializeOpenTag(el));
+    push(ctx, "\n");
+    push(ctx, ind(depth));
+    push(ctx, serializeOpenTag(el), { type: "open", el });
     if (VOID_TAGS.has(tag)) return;
     if (hasDirectBlockChild(el)) {
-      emitChildren(el, depth + 1, out);
-      out.push("\n" + ind(depth) + "</" + tag + ">");
+      emitChildren(el, depth + 1, ctx);
+      push(ctx, "\n");
+      push(ctx, ind(depth));
+      push(ctx, "</" + tag + ">", { type: "close", el });
     } else {
       // Inline-only content: keep the whole block on one line, untouched.
-      out.push(el.innerHTML + "</" + tag + ">");
+      push(ctx, el.innerHTML);
+      push(ctx, "</" + tag + ">", { type: "close", el });
     }
   }
 
-  function emitChildren(container, depth, out) {
+  function emitChildren(container, depth, ctx) {
     const children = Array.from(container.childNodes);
     let i = 0;
     while (i < children.length) {
       const child = children[i];
       if (child.nodeType === Node.COMMENT_NODE) {
-        out.push("\n" + ind(depth) + "<!--" + child.nodeValue + "-->");
+        push(ctx, "\n");
+        push(ctx, ind(depth));
+        push(ctx, "<!--" + child.nodeValue + "-->", { type: "comment", node: child });
         i++;
         continue;
       }
       if (isBlockElement(child)) {
-        emitBlock(child, depth, out);
+        emitBlock(child, depth, ctx);
         i++;
         continue;
       }
@@ -82,18 +112,42 @@
         run += c.nodeType === Node.TEXT_NODE ? c.nodeValue : c.outerHTML;
         i++;
       }
-      const s = run.replace(/^\s+/, "").replace(/\s+$/, "");
-      if (s) out.push("\n" + ind(depth) + s);
+      const lead = run.length - run.replace(/^\s+/, "").length;
+      const trail = run.length - run.replace(/\s+$/, "").length;
+      const s = run.slice(lead, run.length - trail);
+      if (s) {
+        push(ctx, "\n");
+        push(ctx, ind(depth));
+        push(ctx, s, { type: "run" });
+      }
     }
   }
 
   // Pretty-print the children of a root element (the root itself is not
   // serialized — pass the container whose child HTML you want).
   function prettyHTML(root) {
-    const out = [];
-    emitChildren(root, 0, out);
-    return out.join("").trim();
+    return prettyHTMLDetailed(root).html;
+  }
+
+  // Same serialization, plus per-token source coordinates into the final
+  // (trimmed) html. Token types: "open"/"close" (element tags), "comment",
+  // "run" (a trimmed inline run). Used by source-map.js; prettyHTML output is
+  // byte-identical to this html.
+  function prettyHTMLDetailed(root) {
+    const ctx = createCtx();
+    emitChildren(root, 0, ctx);
+    const raw = ctx.out.join("");
+    const lead = raw.length - raw.trimStart().length;
+    const html = raw.trim();
+    for (const t of ctx.tokens) {
+      t.start = Math.max(0, Math.min(html.length, t.start - lead));
+      t.end = Math.max(0, Math.min(html.length, t.end - lead));
+    }
+    return { html, tokens: ctx.tokens };
   }
 
   S.prettyHTML = prettyHTML;
+  S.prettyHTMLDetailed = prettyHTMLDetailed;
+  S.isBlockElement = isBlockElement;
+  S.serializeOpenTag = serializeOpenTag;
 })(window.Scribe || (window.Scribe = {}));

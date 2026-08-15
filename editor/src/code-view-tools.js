@@ -72,14 +72,96 @@
     return matches.length - 1;
   }
 
-  // Substitute $1..$9 backreferences in `replacement` using a full regex exec
-  // result (the array form from String.replace or RegExp.exec).
+  // Substitute $1..$99 backreferences (longest digit run wins: "$12" is
+  // group 12, not group 1 + "2") in `replacement` using a full regex exec
+  // result. Undefined groups leave the reference literal.
   function applyBackreferences(replacement, execResult) {
     if (!execResult || execResult.length <= 1) return replacement;
     return replacement.replace(/\$(\d+)/g, (full, n) => {
       const i = parseInt(n, 10);
       return execResult[i] !== undefined ? execResult[i] : full;
     });
+  }
+
+  // Wrap the selection [start, end) in an element described by `spec`
+  // ("figure", 'figure class="fig"', …). Returns { value, start, end } with
+  // the selection preserved on the wrapped content, or null when the spec
+  // is not a valid tag (caller no-ops).
+  function wrapSelection(value, start, end, spec) {
+    const m = /^\s*([a-zA-Z][a-zA-Z0-9-]*)([\s\S]*?)\s*$/.exec(String(spec == null ? "" : spec));
+    if (!m) return null;
+    const attrs = m[2].trim();
+    // Reject specs with angle brackets or a stray ">" — those would produce
+    // unbalanced markup.
+    if (/[<>]/.test(attrs)) return null;
+    const open = "<" + m[1] + (attrs ? " " + attrs : "") + ">";
+    const close = "</" + m[1] + ">";
+    const next =
+      value.slice(0, start) + open + value.slice(start, end) + close + value.slice(end);
+    return { value: next, start, end };
+  }
+
+  // Indent ("in") or outdent ("out") every line intersecting the selection
+  // by 4 spaces; outdent removes up to 4 leading spaces per line (partial
+  // runs dedent by what remains). With no selection: "in" inserts 4 spaces
+  // at the caret; "out" dedents the caret's line. With a selection the
+  // result covers the whole transformed block of lines.
+  function indentSelection(value, start, end, mode) {
+    const IND = "    ";
+    const lineStartOf = (pos) => value.lastIndexOf("\n", Math.max(0, pos - 1)) + 1;
+    const lineEndOf = (pos) => {
+      const nl = value.indexOf("\n", pos);
+      return nl === -1 ? value.length : nl;
+    };
+
+    if (start === end) {
+      if (mode === "in") {
+        return {
+          value: value.slice(0, start) + IND + value.slice(start),
+          start: start + IND.length,
+          end: start + IND.length
+        };
+      }
+      // Outdent the caret's line; the caret follows the removed spaces
+      // (never moves before the line start).
+      const ls = lineStartOf(start);
+      const le = lineEndOf(start);
+      const removed = /^ {1,4}/.exec(value.slice(ls, le));
+      const cut = removed ? removed[0].length : 0;
+      if (!cut) return { value, start, end };
+      const next = value.slice(0, ls) + value.slice(ls + cut, le) + value.slice(le);
+      const pos = Math.max(ls, start - Math.min(start - ls, cut));
+      return { value: next, start: pos, end: pos };
+    }
+
+    // Lines intersecting the selection = the line of `start` through the line
+    // containing the last selected character (end - 1). The block includes
+    // the final line's terminating newline when present.
+    const selStart = lineStartOf(start);
+    const lastLineEnd = lineEndOf(Math.max(selStart, end - 1));
+    const blockEnd = lastLineEnd < value.length ? lastLineEnd + 1 : lastLineEnd;
+    const block = value.slice(selStart, blockEnd);
+    const hadNl = block.endsWith("\n");
+    const lines = (hadNl ? block.slice(0, -1) : block).split("\n");
+    let delta = 0;
+    const outLines = lines.map((line) => {
+      if (mode === "in") {
+        delta += IND.length;
+        return IND + line;
+      }
+      const removed = /^ {1,4}/.exec(line);
+      if (removed) {
+        delta -= removed[0].length;
+        return line.slice(removed[0].length);
+      }
+      return line;
+    });
+    const outBlock = outLines.join("\n") + (hadNl ? "\n" : "");
+    return {
+      value: value.slice(0, selStart) + outBlock + value.slice(blockEnd),
+      start: selStart,
+      end: blockEnd + delta
+    };
   }
 
   // Re-run the matcher at a position to capture groups (for backreferences).
@@ -363,6 +445,31 @@
         e.preventDefault();
         if (replaceRow) replaceRow.hidden = false;
       }
+      // Block indent/outdent — Tab always acts on the code (never moves
+      // focus); find/replace inputs keep normal Tab (listener is on ta only).
+      if (e.key === "Tab" && !mod) {
+        e.preventDefault();
+        const r = indentSelection(ta.value, ta.selectionStart, ta.selectionEnd, e.shiftKey ? "out" : "in");
+        ta.value = r.value;
+        ta.setSelectionRange(r.start, r.end);
+        afterTextChange();
+        return;
+      }
+      // Wrap selection with a prompted tag (name + optional attributes).
+      if (e.altKey && !mod && (e.key === "w" || e.key === "W")) {
+        e.preventDefault();
+        const spec = window.prompt("Wrap selection with tag (name + optional attributes):", "");
+        if (!spec || !spec.trim()) return; // cancel / empty = no-op
+        const r = wrapSelection(ta.value, ta.selectionStart, ta.selectionEnd, spec);
+        if (!r) {
+          window.alert("Invalid tag specification.");
+          return;
+        }
+        ta.value = r.value;
+        ta.setSelectionRange(r.start, r.end);
+        afterTextChange();
+        return;
+      }
     });
     if (findPanel) {
       findPanel.addEventListener("keydown", (e) => {
@@ -392,6 +499,8 @@
     nextMatchIndex,
     prevMatchIndex,
     applyBackreferences,
+    wrapSelection,
+    indentSelection,
     replaceOneAt,
     replaceAll,
     lineCount,

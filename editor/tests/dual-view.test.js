@@ -13,6 +13,7 @@ const win = loadScribe([
   "document-model.js",
   "cleanup.js",
   "format-html.js",
+  "source-map.js",
   "code-view.js",
   "live-view.js",
   "sync.js"

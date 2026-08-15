@@ -20,9 +20,15 @@
         <p class="app-tagline">Paste Word content. Edit in Live or Code. Copy clean Canada.ca HTML.</p>
       </div>
     </div>
-    <div class="lang-switch btn-group btn-group-sm" role="group" aria-label="Publishing language for generated text">
-      <button type="button" class="btn btn-outline-primary active" id="langEn" aria-pressed="true">EN</button>
-      <button type="button" class="btn btn-outline-primary" id="langFr" aria-pressed="false">FR</button>
+    <div class="d-flex align-items-center gap-2">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Document undo and redo">
+        <button type="button" class="btn btn-outline-secondary" id="docUndoBtn" title="Undo" aria-label="Undo document change" disabled><i class="fa-solid fa-rotate-left"></i></button>
+        <button type="button" class="btn btn-outline-secondary" id="docRedoBtn" title="Redo" aria-label="Redo document change" disabled><i class="fa-solid fa-rotate-right"></i></button>
+      </div>
+      <div class="lang-switch btn-group btn-group-sm" role="group" aria-label="Publishing language for generated text">
+        <button type="button" class="btn btn-outline-primary active" id="langEn" aria-pressed="true">EN</button>
+        <button type="button" class="btn btn-outline-primary" id="langFr" aria-pressed="false">FR</button>
+      </div>
     </div>
   </nav>
 
@@ -43,7 +49,7 @@
             <h3 class="rail-heading">How it works</h3>
             <ol class="rail-steps">
               <li><strong>Paste</strong> Word content into the Live view (Ctrl+V). It is cleaned automatically.</li>
-              <li><strong>Edit</strong> in Live (visual) or Code (HTML). They sync on blur. (clicking anywhere)</li>
+              <li><strong>Edit</strong> in Live (visual) or Code (HTML). Both stay in sync as you type.</li>
               <li><strong>Copy HTML</strong> — placeholders become <code>&lt;!-- image: ... --&gt;</code> comments in the output.</li>
             </ol>
 
@@ -117,11 +123,16 @@
       </aside>
 
       <section class="col-lg-9">
-        <div class="card card-surface mb-3">
+        <div id="viewPanes" class="view-panes">
+        <div class="card card-surface mb-3" id="liveCard">
           <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
               <h2 class="card-title mb-0"><i class="fa-solid fa-table-list me-2 text-primary"></i>Live view</h2>
-              <span class="text-muted small">contentEditable — paste or edit visually; syncs to Code on blur</span>
+              <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small d-none d-xl-inline">paste or edit visually; stays in sync with Code</span>
+                <button type="button" id="splitViewBtn" class="btn btn-sm btn-outline-secondary" aria-pressed="false" title="Show Live and Code side by side (hover linking and linked scrolling work best here)"><i class="fa-solid fa-table-columns me-1"></i>Split view</button>
+                <button type="button" id="locateInCodeBtn" class="btn btn-sm btn-outline-secondary" title="Reveal this element's HTML in the Code view (Alt+C)"><i class="fa-solid fa-crosshairs me-1"></i>Locate in code</button>
+              </div>
             </div>
             <div class="wysiwyg-toolbar" id="wysiwygToolbar" role="toolbar" aria-label="Live view formatting">
               <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="bold" title="Bold (Ctrl+B)" aria-pressed="false"><i class="fa-solid fa-bold"></i></button>
@@ -161,20 +172,35 @@
           </div>
         </div>
 
-        <div class="card card-surface">
+        <div class="card card-surface" id="codeCard">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div>
                 <h2 class="card-title mb-0"><i class="fa-solid fa-code me-2 text-primary"></i>Code view</h2>
-                <small class="text-muted">Raw HTML — typing/pasting here becomes the document on blur (no cleanup).</small>
+                <small class="text-muted">Raw HTML — typing here becomes the document as you pause (no cleanup).</small>
               </div>
               <button id="copyBtn" type="button" class="btn btn-warning px-4">
                 <i class="fa-regular fa-clone me-2"></i><span>Copy HTML</span>
               </button>
             </div>
             <div class="code-toolbar">
-              <small class="code-shortcut-hint"><kbd>Ctrl+F</kbd> find &middot; <kbd>Ctrl+Shift+F</kbd> find &amp; replace &middot; <kbd>Ctrl+G</kbd> go to line</small>
-              <button type="button" id="goToLineBtn" class="btn btn-sm btn-outline-secondary ms-auto"><i class="fa-solid fa-arrow-down me-1"></i>Go to line</button>
+              <small class="code-shortcut-hint"><kbd>Ctrl+F</kbd> find &middot; <kbd>Ctrl+Shift+F</kbd> find &amp; replace &middot; <kbd>Ctrl+G</kbd> go to line &middot; <kbd>Alt+C</kbd> locate &middot; <kbd>Alt+W</kbd> wrap tag &middot; <kbd>Tab</kbd> indent</small>
+              <div class="btn-group btn-group-sm ms-auto" role="group" aria-label="Code view actions">
+                <button type="button" id="revealLiveBtn" class="btn btn-outline-secondary" title="Show the element at the caret in the Live view"><i class="fa-solid fa-arrow-up me-1"></i>Show in Live view</button>
+                <button type="button" id="goToLineBtn" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-down me-1"></i>Go to line</button>
+                <div class="btn-group" role="group" aria-label="Code view options">
+                  <button type="button" id="codeOptsBtn" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Code view options"><i class="fa-solid fa-gear"></i></button>
+                  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="codeOptsBtn">
+                    <li><h6 class="dropdown-header">Code view options</h6></li>
+                    <li>
+                      <button type="button" class="dropdown-item" id="tidyToggleBtn" aria-pressed="false">
+                        <i class="fa-solid fa-align-left me-2"></i>Re-indent HTML on commit
+                        <small class="d-block text-muted">Cleans up indentation when you click away from the code</small>
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             <div class="code-find-panel" id="codeFindPanel" hidden>
@@ -198,12 +224,14 @@
             <div class="code-editor">
               <div class="code-gutter" id="codeLineNumbers" aria-hidden="true"></div>
               <div class="code-input-wrap">
+                <div class="code-hover-band" id="codeHoverBand" hidden></div>
                 <pre class="code-highlight" id="codeHighlight" aria-hidden="true"><code></code></pre>
                 <textarea id="codeView" class="code-textarea" spellcheck="false"
                           placeholder="Cleaned HTML appears here after you paste, or type/paste raw HTML..."></textarea>
               </div>
             </div>
           </div>
+        </div>
         </div>
       </section>
     </div>
@@ -306,8 +334,10 @@
   <!-- Editor modules: classic scripts sharing window.Scribe. Load in
        dependency order; main.js (entry) is last. -->
   <script src="src/document-model.js"></script>
+  <script src="src/history.js"></script>
   <script src="src/cleanup.js"></script>
   <script src="src/format-html.js"></script>
+  <script src="src/source-map.js"></script>
   <script src="src/i18n.js"></script>
   <script src="src/table-editor.js"></script>
   <script src="src/code-view.js"></script>
@@ -316,6 +346,8 @@
   <script src="src/entry.js"></script>
   <script src="src/copy.js"></script>
   <script src="src/code-view-tools.js"></script>
+  <script src="src/reveal.js"></script>
+  <script src="src/hover-link.js"></script>
   <script src="src/toasts.js"></script>
   <script src="src/document-recovery.js"></script>
   <script src="src/wysiwyg.js"></script>

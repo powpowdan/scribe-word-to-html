@@ -72,6 +72,34 @@
     return { tables: t, figures: f };
   }
 
+  // Assign the Add-IDs-scheme id to ONE element (heading slug, tbl-N / fig-N
+  // positional among id-less elements of its kind, collision-suffixed). This
+  // is the same scheme addIds applies doc-wide, scoped for single-element
+  // fixes (e.g. the QA panel's "Add ID" action). The element must currently
+  // be id-less. Returns the assigned id.
+  function assignElementId(el, root) {
+    if (!el || el.id) return el ? el.id : null;
+    const existing = collectExistingIds(root);
+    if (/^H[1-6]$/.test(el.tagName)) {
+      el.id = uniqueId(slugify(el.textContent), existing);
+      return el.id;
+    }
+    if (el.tagName === "TABLE" || el.tagName === "FIGURE") {
+      const prefix = el.tagName === "TABLE" ? "tbl-" : "fig-";
+      // Positional number = count of id-less elements of this kind BEFORE el
+      // (matches addIds' document-order numbering for a full run).
+      let n = 0;
+      let seen = false;
+      root.querySelectorAll(el.tagName.toLowerCase()).forEach((other) => {
+        if (other === el) { seen = true; return; }
+        if (!seen && !other.id) n++;
+      });
+      el.id = uniqueId(prefix + (n + 1), existing);
+      return el.id;
+    }
+    return null;
+  }
+
   // Localized "On this page" title (i18n.js may not be loaded in every host).
   function onThisPageTitle(lang) {
     if (S.i18n && S.i18n.STRINGS[lang]) return S.i18n.STRINGS[lang].onThisPage;
@@ -196,6 +224,7 @@
     uniqueId,
     ensureHeadingIds,
     addIds,
+    assignElementId,
     addOnThisPage
   };
 })(window.Scribe || (window.Scribe = {}));

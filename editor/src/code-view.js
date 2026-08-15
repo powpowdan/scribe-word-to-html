@@ -8,20 +8,42 @@
   function createCodeView(textarea, model, refs) {
     const ChangeSource = refs.ChangeSource;
 
-    // Programmatic value changes don't fire 'input' — dispatch a custom
-    // signal so dependents (line-number gutter, syntax-highlight overlay)
-    // can refresh. Written on every model->textarea push.
-    function setValue(html) {
-      textarea.value = html;
-      textarea.dispatchEvent(new Event("scribe:code-write"));
-    }
-
     // Push model -> textarea, but only when the change did not originate from
     // the code view itself (otherwise we would overwrite the user's typing).
+    // While the textarea is unfocused (the follower case: the user is typing
+    // in Live or a toolbar command fired), scroll position and text selection
+    // are captured before the value swap and restored after — a plain
+    // textarea.value assignment resets scroll to the top in browsers
+    // (view-linking spec: scroll/selection preservation on background
+    // refresh). The 'scribe:code-write' event then re-syncs the highlight
+    // overlay and line-number gutter (they read the restored scrollTop).
     const unsubscribe = model.subscribe((html, source) => {
       if (source === ChangeSource.code) return;
       if (textarea.value !== html) setValue(html);
     });
+
+    function setValue(html) {
+      const doc = textarea.ownerDocument;
+      const active = doc && doc.activeElement === textarea;
+      let st, sl, ss, se;
+      if (!active) {
+        st = textarea.scrollTop;
+        sl = textarea.scrollLeft;
+        ss = textarea.selectionStart;
+        se = textarea.selectionEnd;
+      }
+      textarea.value = html;
+      if (!active) {
+        textarea.scrollTop = st;
+        textarea.scrollLeft = sl;
+        try {
+          textarea.setSelectionRange(ss, se);
+        } catch (e) {
+          /* selection restore is best-effort */
+        }
+      }
+      textarea.dispatchEvent(new Event("scribe:code-write"));
+    }
 
     // Initial projection.
     setValue(model.getHTML());

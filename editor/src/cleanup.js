@@ -379,6 +379,88 @@
   }
 
   // ===========================================================================
+  // DOCX FOOTNOTE CONVERSION  (mammoth output -> WET wb-fnote markup)
+  // ===========================================================================
+
+  // Mammoth renders .docx footnotes/endnotes into the body as:
+  //   refs:    <sup><a id="footnote-ref-N" href="#footnote-N">[k]</a></sup>
+  //   entries: trailing <ol><li id="footnote-N">body…<p><a href="#footnote-ref-N">↑</a></p></li></ol>
+  // This converts that shape into the WET pattern produced by the manual
+  // Insert Footnote command (footnotes.js builders — one shared construction
+  // path, bilingual strings). The paste path never calls this: Word clipboard
+  // footnote markup carries no recoverable content and stays stripped.
+  //
+  // Returns { html, warnings, converted } — html is the input unchanged when
+  // no note references are present.
+  function convertMammothFootnotes(html, lang) {
+    const notesLang = lang || (S.i18n ? S.i18n.getLanguage() : "en") || "en";
+    const warnings = [];
+    const container = document.createElement("div");
+    container.innerHTML = html;
+
+    const refs = container.querySelectorAll(
+      'sup > a[href^="#footnote-"], sup > a[href^="#endnote-"]'
+    );
+    if (!refs.length) return { html, warnings, converted: 0 };
+
+    // Map note id (from the entry li) -> li element.
+    const entries = {};
+    container.querySelectorAll("ol > li[id]").forEach((li) => {
+      const m = /^(footnote|endnote)-\d+$/.test(li.id || "");
+      if (m) entries[li.id] = li;
+    });
+
+    let converted = 0;
+    let malformed = 0;
+    let dl = null;
+    refs.forEach((a) => {
+      const sup = a.parentNode;
+      const noteId = (a.getAttribute("href") || "").slice(1);
+      const li = entries[noteId];
+      // Body = the li's children minus mammoth's trailing back-link <p>
+      // (the <p> whose only link targets the reference anchor).
+      let bodyNodes = [];
+      if (li) {
+        bodyNodes = Array.from(li.childNodes).filter((node) => {
+          if (node.nodeType === 1 && node.tagName === "P") {
+            const back = node.querySelector('a[href^="#footnote-ref-"], a[href^="#endnote-ref-"]');
+            const onlyLink = back && node.textContent.replace(/\s|↑/g, "") === "";
+            if (onlyLink) return false;
+          }
+          return true;
+        });
+      }
+      if (!li || !bodyNodes.length) {
+        // Unconvertible: strip the reference so no dead anchor ships.
+        malformed++;
+        if (sup.parentNode) sup.remove();
+        return;
+      }
+      converted++;
+      if (!dl) dl = S.footnotes.ensureFootnotesAside(container, notesLang);
+      dl.appendChild(S.footnotes.buildFootnoteEntryNodes(converted, bodyNodes, notesLang));
+      sup.parentNode.replaceChild(S.footnotes.buildFootnoteReference(converted, notesLang), sup);
+    });
+
+    // Remove every mammoth note-entry li — converted ones (already rebuilt
+    // inside the aside) and unreferenced ones (note content without a
+    // reference never ships) — and drop the notes <ol> once empty.
+    container.querySelectorAll("ol > li[id]").forEach((li) => {
+      if (/^(footnote|endnote)-\d+$/.test(li.id || "")) li.remove();
+    });
+    container.querySelectorAll("ol").forEach((ol) => {
+      if (!ol.children.length && !ol.closest("aside")) ol.remove();
+    });
+
+    if (malformed > 0) {
+      warnings.push(
+        malformed + " footnote reference" + (malformed === 1 ? " had no matching content and was removed" : "s had no matching content and were removed") + "."
+      );
+    }
+    return { html: container.innerHTML, warnings, converted };
+  }
+
+  // ===========================================================================
   // LIST-MARKER NORMALIZATION  (legacy L940-L1019)
   // ===========================================================================
 
@@ -557,6 +639,8 @@
   S.stripWordComments = stripWordComments;
   S.stripWordCommentsFromHtml = stripWordCommentsFromHtml;
 
+  S.convertMammothFootnotes = convertMammothFootnotes;
+
   S._cleanupInternals = {
     DEFAULT_REMOVE_ATTRS,
     DEFAULT_REMOVE_TAGS,
@@ -568,6 +652,7 @@
     stripImages,
     acceptTrackChanges,
     stripUnsupportedMarkup,
+    convertMammothFootnotes,
     normalizeListMarkers,
     stripWordComments,
     isWordCommentMarker,

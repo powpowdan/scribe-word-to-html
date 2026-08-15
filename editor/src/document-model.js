@@ -34,13 +34,16 @@
      * Replace the document HTML and notify subscribers.
      * `source` identifies the origin so a view can skip refreshing itself when
      * it was the writer (avoids clobbering an in-progress edit). See sync.js.
+     * `label` (optional) names the action ("Add IDs", "Paste document", …);
+     * it is re-emitted to subscribers so document history can name what a
+     * later undo reverts. Untitled writes fall back to a generic label.
      */
-    setHTML(html, source) {
+    setHTML(html, source, label) {
       const next = html == null ? "" : String(html);
       const src = source || ChangeSource.command;
       if (next === this._html && src !== ChangeSource.init) return;
       this._html = next;
-      this._emit(src);
+      this._emit(src, label);
     }
 
     /** Subscribe to changes. Returns an unsubscribe function. */
@@ -49,10 +52,11 @@
       return () => this._listeners.delete(fn);
     }
 
-    _emit(source) {
+    _emit(source, label) {
+      const lbl = label || "Edit document";
       for (const fn of this._listeners) {
         try {
-          fn(this._html, source);
+          fn(this._html, source, lbl);
         } catch (err) {
           console.error("DocumentModel subscriber threw:", err);
         }

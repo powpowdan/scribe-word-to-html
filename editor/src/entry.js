@@ -43,9 +43,71 @@
 
       const result = S.cleanWordHtml(raw);
       const formatted = withTablesFormatted(result.html);
-      model.setHTML(formatted, ChangeSource.paste);
+      model.setHTML(formatted, ChangeSource.paste, "Paste document");
       if (typeof hooks.onPaste === "function") hooks.onPaste({ warnings: result.warnings });
     });
+  }
+
+  // ===========================================================================
+  // DOCX LANGUAGE DETECTION (run-level <w:lang> metadata)
+  // ===========================================================================
+
+  // Detection thresholds (tunable constants): a confident call needs at least
+  // MIN_SAMPLE_CHARS of language-tagged run text and a language share of at
+  // least PREDOMINANCE_SHARE. Below either -> null (state left untouched).
+  var LANG_MIN_SAMPLE_CHARS = 200;
+  var LANG_PREDOMINANCE_SHARE = 0.75;
+
+  // Tally EN vs FR character counts from run-level <w:lang> declarations in
+  // a word/document.xml payload. A flat regex scan of <w:r>…</w:r> runs —
+  // deliberately no DOMParser (its XML support varies across environments);
+  // detection degrades to zero counts on malformed input, never throws.
+  // Runs with no known language tag are ignored entirely (they count toward
+  // neither side nor the sample); unknown languages count as "other" only.
+  function tallyLanguagesFromXml(xmlString) {
+    var counts = { en: 0, fr: 0, other: 0 };
+    var xml = String(xmlString == null ? "" : xmlString);
+    var runRe = /<w:r(?:\s[^>]*)?>([\s\S]*?)<\/w:r>/g;
+    var langRe = /<w:lang\b[^>]*\bw:val\s*=\s*"([^"]*)"/;
+    var m;
+    while ((m = runRe.exec(xml)) !== null) {
+      var langMatch = langRe.exec(m[1]);
+      if (!langMatch) continue;
+      var lang = langMatch[1].split("-")[0].toLowerCase();
+      var text = m[1].replace(/<[^>]*>/g, "");
+      if (lang === "en" || lang === "fr") counts[lang] += text.length;
+      else counts.other += text.length;
+    }
+    return counts;
+  }
+
+  // Resolve "en" | "fr" | null for a .docx arrayBuffer by reading
+  // word/document.xml through the vendored mammoth bundle's zip support.
+  // Resolves null on any failure (missing API, bad zip, no document part,
+  // ambiguous content) — detection must never block conversion.
+  function detectDocxLanguage(arrayBuffer) {
+    var mammoth = typeof window !== "undefined" ? window.mammoth : null;
+    if (!mammoth || typeof mammoth._openZip !== "function") {
+      return Promise.resolve(null);
+    }
+    return mammoth
+      ._openZip({ arrayBuffer: arrayBuffer })
+      .then(function (zip) {
+        if (!zip || typeof zip.exists !== "function" || !zip.exists("word/document.xml")) {
+          return null;
+        }
+        return zip.read("word/document.xml", "utf-8").then(function (xml) {
+          var counts = tallyLanguagesFromXml(xml);
+          var sample = counts.en + counts.fr;
+          if (sample < LANG_MIN_SAMPLE_CHARS) return null;
+          if (counts.fr / sample >= LANG_PREDOMINANCE_SHARE) return "fr";
+          if (counts.en / sample >= LANG_PREDOMINANCE_SHARE) return "en";
+          return null;
+        });
+      })
+      .catch(function () {
+        return null;
+      });
   }
 
   function wireDocxUpload(fileInput, model, refs, hooks) {
@@ -63,18 +125,40 @@
         return;
       }
 
+      if (typeof hooks.onDocxStart === "function") hooks.onDocxStart();
+
       const reader = new FileReader();
       reader.onload = (ev) => {
-        window.mammoth
-          .convertToHtml({ arrayBuffer: ev.target.result })
+        // Language detection runs first so a confident result can set the
+        // EN/FR state before generated content (footnote strings) is built.
+        // A manual toggle earlier in the session wins over detection — the
+        // host decides via onLanguageDetected; detection never blocks.
+        detectDocxLanguage(ev.target.result)
+          .then((lang) => {
+            if (lang && typeof hooks.onLanguageDetected === "function") {
+              hooks.onLanguageDetected(lang);
+            }
+          })
+          .then(() =>
+            window.mammoth.convertToHtml({ arrayBuffer: ev.target.result })
+          )
           .then((result) => {
             // mammoth renders Word comments as [Author1] inline anchors plus a
-            // trailing comment <dl>; strip them so comments never enter the model.
-            const html = withTablesFormatted(
-              S.stripWordCommentsFromHtml((result && result.value) || "")
-            );
-            model.setHTML(html, ChangeSource.docx);
-            if (typeof hooks.onDocx === "function") hooks.onDocx({ messages: result && result.messages });
+            // trailing comment <dl>; strip them so comments never enter the
+            // model. Footnotes convert to the WET pattern (paste path never
+            // converts — clipboard footnote markup has no recoverable text).
+            const warnings = [];
+            const fn = S.convertMammothFootnotes
+              ? S.convertMammothFootnotes(
+                  S.stripWordCommentsFromHtml((result && result.value) || "")
+                )
+              : { html: S.stripWordCommentsFromHtml((result && result.value) || ""), warnings: [] };
+            (fn.warnings || []).forEach((w) => warnings.push(w));
+            const html = withTablesFormatted(fn.html);
+            model.setHTML(html, ChangeSource.docx, "Open document");
+            if (typeof hooks.onDocx === "function") {
+              hooks.onDocx({ messages: result && result.messages, warnings });
+            }
           })
           .catch((err) => {
             console.error("mammoth conversion error:", err);
@@ -98,4 +182,8 @@
   S.wirePaste = wirePaste;
   S.wireDocxUpload = wireDocxUpload;
   S.rawHtmlEntry = rawHtmlEntry;
+  S.tallyLanguagesFromXml = tallyLanguagesFromXml;
+  S.detectDocxLanguage = detectDocxLanguage;
+  S.LANG_MIN_SAMPLE_CHARS = LANG_MIN_SAMPLE_CHARS;
+  S.LANG_PREDOMINANCE_SHARE = LANG_PREDOMINANCE_SHARE;
 })(window.Scribe || (window.Scribe = {}));

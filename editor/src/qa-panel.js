@@ -79,7 +79,7 @@
         });
       }
       if (!h.id) {
-        issues.push({ type: "heading-no-id", message: "Heading without an id" + (text ? ": \"" + text + "\"" : ""), id: null, locator });
+        issues.push({ type: "heading-no-id", message: "Heading without an id" + (text ? ": \"" + text + "\"" : ""), id: null, locator, fix: "add-id" });
       }
       prevLevel = level;
     });
@@ -88,7 +88,14 @@
     let tableIdx = 0;
     root.querySelectorAll("table").forEach((t) => {
       const locator = { kind: "table", index: tableIdx++ };
-      if (!t.id) issues.push({ type: "table-no-id", message: "Table without an id", id: null, locator });
+      if (!t.id) issues.push({ type: "table-no-id", message: "Table without an id", id: null, locator, fix: "add-id" });
+    });
+
+    // Figures without ids.
+    let figureIdx = 0;
+    root.querySelectorAll("figure").forEach((f) => {
+      const locator = { kind: "figure", index: figureIdx++ };
+      if (!f.id) issues.push({ type: "figure-no-id", message: "Figure without an id", id: null, locator, fix: "add-id" });
     });
 
     // Leftover image placeholders.
@@ -111,7 +118,7 @@
       if (!href && a.getAttribute("name")) return; // bookmark, not a link
       if (!href || href === "#") {
         const label = a.textContent.trim();
-        issues.push({ type: "bad-link", message: "Link with empty or placeholder href" + (label ? ": \"" + label + "\"" : ""), id: a.id || null, locator });
+        issues.push({ type: "bad-link", message: "Link with empty or placeholder href" + (label ? ": \"" + label + "\"" : ""), id: a.id || null, locator, fix: "strip-link" });
       }
     });
 
@@ -158,20 +165,27 @@
       return false;
     }
 
-    // Position-based navigation: jump to the nth real heading / table / link
-    // in the Live view. Makes every outline entry and issue clickable even
-    // when the target has no id.
+    // Resolve a locator to the live element inside `root` (nth real heading /
+    // table / figure / link in document order). Shared by click-to-jump
+    // navigation and one-click fixes.
+    function resolveLocator(root, locator) {
+      if (!root || !locator) return null;
+      if (locator.kind === "heading") {
+        const headings = Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6")).filter(isRealHeading);
+        return headings[locator.index] || null;
+      }
+      if (locator.kind === "table") return root.querySelectorAll("table")[locator.index] || null;
+      if (locator.kind === "figure") return root.querySelectorAll("figure")[locator.index] || null;
+      if (locator.kind === "link") return root.querySelectorAll("a")[locator.index] || null;
+      return null;
+    }
+
+    // Position-based navigation: jump to the nth real heading / table / figure
+    // / link in the Live view. Makes every outline entry and issue clickable
+    // even when the target has no id.
     function navigateToLocator(locator) {
       if (!liveRoot || !locator) return false;
-      let el = null;
-      if (locator.kind === "heading") {
-        const headings = Array.from(liveRoot.querySelectorAll("h1,h2,h3,h4,h5,h6")).filter(isRealHeading);
-        el = headings[locator.index];
-      } else if (locator.kind === "table") {
-        el = liveRoot.querySelectorAll("table")[locator.index];
-      } else if (locator.kind === "link") {
-        el = liveRoot.querySelectorAll("a")[locator.index];
-      }
+      const el = resolveLocator(liveRoot, locator);
       if (el && el.scrollIntoView) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         return true;
@@ -226,6 +240,35 @@
       outlineEl.appendChild(rootList);
     }
 
+    // ---- One-click fixes ----
+    // Fixes edit the document through the model (labeled command writes, so
+    // they are undoable); the panel's model subscription re-lints and
+    // re-renders the issues list when the write lands.
+    function applyFix(issue) {
+      if (!model || !issue || !issue.fix) return false;
+      const container = parseModel();
+      const el = issue.id
+        ? container.querySelector("#" + issue.id)
+        : resolveLocator(container, issue.locator);
+      if (!el) return false;
+
+      if (issue.fix === "add-id") {
+        if (!S.documentCommands || !S.documentCommands.assignElementId(el, container)) {
+          return false;
+        }
+        model.setHTML(container.innerHTML, "command", "Add ID");
+        return true;
+      }
+      if (issue.fix === "strip-link") {
+        // Unwrap the anchor — its text content stays in the document.
+        while (el.firstChild) el.parentNode.insertBefore(el.firstChild, el);
+        el.remove();
+        model.setHTML(container.innerHTML, "command", "Strip link");
+        return true;
+      }
+      return false;
+    }
+
     function renderIssues() {
       if (!issuesEl) return;
       const issues = detectIssues(parseModel());
@@ -240,6 +283,23 @@
         const li = document.createElement("li");
         li.className = "qa-issue qa-" + iss.type;
         li.textContent = iss.message;
+        // One-click fix where a safe mechanical fix exists. The click must
+        // not fall through to the row's navigate handler.
+        if (iss.fix) {
+          const fixBtn = document.createElement("button");
+          fixBtn.type = "button";
+          fixBtn.className = "btn btn-sm btn-outline-primary qa-fix-btn";
+          fixBtn.textContent = iss.fix === "add-id" ? "Add ID" : "Strip link";
+          fixBtn.title = iss.fix === "add-id"
+            ? "Assign the Add-IDs-scheme id to this element"
+            : "Remove the link, keep its text";
+          fixBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const ok = applyFix(iss);
+            if (!ok && toaster) toaster.show("Could not fix — the document may have changed.", "warn");
+          });
+          li.appendChild(fixBtn);
+        }
         // Clickable whenever we can find the target (id or position).
         if (iss.id || iss.locator) {
           li.className += " qa-clickable";

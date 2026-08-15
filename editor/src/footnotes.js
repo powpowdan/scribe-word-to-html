@@ -40,8 +40,10 @@
     return sup;
   }
 
-  // Fragment: <dt>Footnote N</dt> + <dd id="fnN"><p>text</p><p class="fn-rtn">…return…</p></dd>
-  function buildFootnoteEntry(n, text, lang) {
+  // Fragment: <dt>Footnote N</dt> + <dd id="fnN">bodyNodes…<p class="fn-rtn">…return…</p></dd>
+  // Shared construction core — used by manual insertion (text variant below)
+  // and by .docx footnote conversion (arbitrary body nodes).
+  function buildFootnoteEntryNodes(n, bodyNodes, lang) {
     const str = fnStrings(lang);
     const frag = document.createDocumentFragment();
 
@@ -51,10 +53,7 @@
 
     const dd = document.createElement("dd");
     dd.id = "fn" + n;
-
-    const body = document.createElement("p");
-    body.textContent = String(text == null ? "" : text);
-    dd.appendChild(body);
+    Array.prototype.forEach.call(bodyNodes, (node) => dd.appendChild(node));
 
     const rtn = document.createElement("p");
     rtn.className = "fn-rtn";
@@ -77,6 +76,14 @@
 
     frag.appendChild(dd);
     return frag;
+  }
+
+  // <dt>Footnote N</dt> + <dd id="fnN"><p>text</p><p class="fn-rtn">…</p></dd>
+  // (manual insertion: single-paragraph body)
+  function buildFootnoteEntry(n, text, lang) {
+    const body = document.createElement("p");
+    body.textContent = String(text == null ? "" : text);
+    return buildFootnoteEntryNodes(n, [body], lang);
   }
 
   // Next footnote number = max existing fn<digit> dd id + 1 (symbolic fn* skipped).
@@ -163,6 +170,7 @@
   S.footnotes = {
     buildFootnoteReference,
     buildFootnoteEntry,
+    buildFootnoteEntryNodes,
     nextFootnoteNumber,
     ensureFootnotesAside,
     mountFootnotes
