@@ -117,8 +117,13 @@
     S.wirePaste(liveView, model, refs, {
       onPaste: ({ warnings }) => showWarnings(warnings)
     });
-    S.wireDocxUpload($("docxFile"), model, refs, {
-      onError: (msg) => alert(msg),
+    // Shared .docx hooks: the Import file input and the paste-first hero's
+    // drop zone both feed the single mammoth pipeline (entry.js loadDocxFile).
+    const docxHooks = {
+      onError: (msg) => {
+        if (toaster) toaster.show(msg, "warn");
+        else window.alert(msg);
+      },
       // A fresh file open resets the manual-override flag so detection gets
       // a fresh chance; the toggle wins only until then.
       onDocxStart: () => { langManuallySet = false; },
@@ -131,12 +136,25 @@
         }
       },
       onDocx: ({ warnings }) => showWarnings(warnings)
-    });
+    };
+    S.wireDocxUpload($("docxFile"), model, refs, docxHooks);
 
-    S.wireCopyButton($("copyBtn"), model, {
-      onCopied: () => flash($("copyBtn"), '<i class="fa-solid fa-check me-2"></i>Copied!'),
-      onError: () => alert("Could not copy to clipboard.")
-    });
+    // Paste-first empty state (ui-shell spec): the hero overlays the Live
+    // surface while the document is empty — click focuses the editor (paste
+    // stays the primary path), a dropped .docx goes through the same
+    // conversion as an upload. Reappears if the document is emptied again.
+    const hero = S.wireEmptyHero
+      ? S.wireEmptyHero($("emptyHero"), $("liveView"), {
+          onDocxFile: (file) => S.loadDocxFile(file, model, refs, docxHooks),
+          onInvalidFile: () =>
+            showWarnings(["Only .docx files can be converted — paste the content instead."])
+        })
+      : null;
+    function updateEmptyState() {
+      if (hero) hero.update(model.getHTML());
+    }
+    model.subscribe(updateEmptyState);
+    updateEmptyState();
 
     // Mount the table editor onto the Live view. After each table action the
     // Live view's HTML is flushed to the document model so the Code view stays
@@ -202,6 +220,22 @@
 
     // Toasts (transient notifications).
     const toaster = S.createToaster ? S.createToaster($("toastRegion")) : null;
+
+    // Copy HTML lives in the app nav and is also bound to Ctrl+Shift+C
+    // (dual-view-editor spec, "Copy HTML output"). Failure feedback uses the
+    // toast region (falling back to alert) instead of blocking dialogs.
+    const copyCtl = S.wireCopyButton($("copyBtn"), model, {
+      onCopied: () => flash($("copyBtn"), '<i class="fa-solid fa-check me-2"></i>Copied!'),
+      onError: () => {
+        if (toaster) toaster.show("Could not copy to clipboard.", "warn");
+        else window.alert("Could not copy to clipboard.");
+      }
+    });
+    S.wireCopyShortcut(document, copyCtl.triggerCopy);
+
+    // Theme toggle (ui-shell spec): theme-boot.js already applied the
+    // resolved theme pre-paint; the nav button flips and persists the choice.
+    if (S.theme) S.theme.initThemeToggle($("themeToggleBtn"));
 
     // View linking (view-linking spec): reveal in code / reveal in live,
     // switch-time position mapping, linked scrolling, hover highlighting.
@@ -327,15 +361,6 @@
       }
     }
 
-    // Onboarding empty-state: visible only while the document is empty.
-    function refreshOnboarding() {
-      const hint = $("onboardingHint");
-      if (!hint) return;
-      hint.style.display = model.getHTML().trim() ? "none" : "";
-    }
-    model.subscribe(refreshOnboarding);
-    refreshOnboarding();
-
     // WYSIWYG formatting toolbar for the Live view (bold/italic/lists/indent/
     // block-format/link). onChange flushes the Live view into the model so the
     // Code view stays live (mousedown preventDefault keeps focus in Live, so
@@ -395,6 +420,7 @@
         liveRoot: liveView.element,
         outlineEl: $("qaOutline"),
         issuesEl: $("qaIssues"),
+        issuesCountEl: $("qaIssueCount"),
         countInput: $("qaCountInput"),
         countBtn: $("qaCountBtn"),
         countResults: $("qaCountResults"),

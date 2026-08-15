@@ -1,6 +1,7 @@
 // Copy HTML control: serializes the document model to output HTML (image
 // placeholders -> comments, empty elements stripped) and writes it to the
-// clipboard. See dual-view-editor spec ("Copy HTML output") and the
+// clipboard. See dual-view-editor spec ("Copy HTML output" — the control
+// lives in the app nav and is also reachable via Ctrl+Shift+C) and the
 // image-placeholders spec ("Placeholders serialize as comments in output").
 //
 // Classic script — attaches to window.Scribe.
@@ -11,7 +12,8 @@
   function wireCopyButton(button, model, hooks) {
     hooks = hooks || {};
 
-    button.addEventListener("click", () => {
+    // Shared path for the button click and the Ctrl+Shift+C shortcut.
+    function triggerCopy() {
       // Flush any in-progress edit in the focused view into the model first.
       const active = document.activeElement;
       if (active && typeof active.blur === "function") active.blur();
@@ -38,6 +40,21 @@
       } else {
         onError();
       }
+    }
+
+    button.addEventListener("click", triggerCopy);
+    return { triggerCopy: triggerCopy };
+  }
+
+  // Global Ctrl+Shift+C (and Cmd+Shift+C) → copy. Bound to `document` by
+  // main.js so the terminal action is reachable from anywhere in the app.
+  function wireCopyShortcut(target, triggerCopy) {
+    if (!target || typeof triggerCopy !== "function") return;
+    target.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && (e.key === "C" || e.key === "c")) {
+        e.preventDefault();
+        triggerCopy();
+      }
     });
   }
 
@@ -60,4 +77,5 @@
   }
 
   S.wireCopyButton = wireCopyButton;
+  S.wireCopyShortcut = wireCopyShortcut;
 })(window.Scribe || (window.Scribe = {}));

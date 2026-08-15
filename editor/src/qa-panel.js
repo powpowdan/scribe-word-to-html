@@ -126,15 +126,16 @@
   }
 
   // ---- Mounter ----
-  // config: { model, liveRoot, outlineEl, issuesEl, countInput, countBtn,
-  //           countResults, presetSelect, presetSaveBtn, presetRecallBtn,
-  //           toaster, storage }
+  // config: { model, liveRoot, outlineEl, issuesEl, issuesCountEl, countInput,
+  //           countBtn, countResults, presetSelect, presetSaveBtn,
+  //           presetRecallBtn, toaster, storage }
   function mountQaPanel(config) {
     config = config || {};
     const model = config.model;
     const liveRoot = config.liveRoot;
     const outlineEl = config.outlineEl;
     const issuesEl = config.issuesEl;
+    const issuesCountEl = config.issuesCountEl;
     const countInput = config.countInput;
     const countBtn = config.countBtn;
     const countResults = config.countResults;
@@ -272,6 +273,17 @@
     function renderIssues() {
       if (!issuesEl) return;
       const issues = detectIssues(parseModel());
+      // Live count badge on the section heading (qa-panel spec): shown with
+      // the count while issues exist, hidden when the document is clean (the
+      // "No issues found." row below is the clean state).
+      if (issuesCountEl) {
+        if (issues.length) {
+          issuesCountEl.textContent = String(issues.length);
+          issuesCountEl.removeAttribute("hidden");
+        } else {
+          issuesCountEl.setAttribute("hidden", "");
+        }
+      }
       issuesEl.innerHTML = "";
       if (!issues.length) {
         issuesEl.innerHTML = '<p class="qa-ok"><i class="fa-solid fa-circle-check"></i> No issues found.</p>';

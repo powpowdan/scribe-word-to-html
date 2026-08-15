@@ -1,27 +1,169 @@
-/* Scribe modular editor styling. Ports the legacy Scribe visual identity
- * (gradient background, card surfaces) and adds the visible image-placeholder
- * box required by the image-placeholders spec ("Image is replaced by a visible
- * canvas placeholder"). */
+/* Scribe modular editor styling.
+ *
+ * Design tokens (ui-shell spec): all chrome colors, shadows and radii are
+ * CSS custom properties on :root. Light values are the default; dark values
+ * live in TWO places that must stay in sync — the [data-theme="dark"] block
+ * (manual choice, applied pre-paint by src/theme-boot.js) and the
+ * prefers-color-scheme media query (OS default when no choice is stored).
+ *
+ * Elevation grammar: resting surfaces (cards, rail, editor chrome) are flat
+ * with hairline borders; ONLY floating layers (table toolbar, find panel,
+ * toasts, recovery modal) get --shadow-float.
+ *
+ * Page-preview constants: the Live view renders the document as a printed
+ * Canada.ca page, so its internals (table borders, thead, captions, gc-toc,
+ * footnotes, image placeholders, selection states) keep light-page colors in
+ * BOTH themes. Same for the Code pane, which is dark in both themes. */
 
 :root {
-  --scribe-blue: #0d6efd;
-  --scribe-border: rgba(13, 110, 253, 0.12);
-  --scribe-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  /* Surfaces */
+  --bg-app: #f6f8fc;
+  --surface: #ffffff;
+  --surface-sunken: #f4f6fb;
+  --page-surface: #ffffff;                    /* Live-view page (constant) */
+  --surface-overlay: rgba(15, 23, 42, 0.96);  /* toasts / find panel (constant dark) */
+  --overlay-hover: #1e2a44;
+  --scrim: rgba(15, 23, 42, 0.45);
+
+  /* Text tiers */
+  --text-1: #1f2a44;
+  --text-2: #4a5673;
+  --text-soft: #6b7894;
+  --text-muted: #8892a0;
+
+  /* Borders */
+  --border-hairline: #e5e9f2;
+  --border-strong: #c7d2fe;
+
+  /* Accent */
+  --accent: #0d6efd;
+  --accent-strong: #0a3d8f;
+  --accent-contrast: #ffffff;
+  --accent-soft: rgba(13, 110, 253, 0.16);
+
+  /* Status */
+  --ok: #198754;
+  --ok-strong: #20c997;
+  --warn-line: #f59e0b;
+  --warn-bg: #fffbeb;
+  --warn-text: #92400e;
+  --warn-text-2: #b45309;
+
+  /* Chrome details */
+  --kbd-bg: #eef2ff;
+
+  /* Elevation + shape (one shadow tier, floating layers only) */
+  --shadow-float: 0 12px 32px rgba(15, 23, 42, 0.18);
+  --radius-card: 1rem;
+  --radius-control: 0.6rem;
+  --radius-small: 0.4rem;
+
+  /* Live-view editing states (sit on the constant light page) */
+  --cell-fill: rgba(13, 110, 253, 0.22);
+  --cell-line: rgba(13, 110, 253, 0.6);
+  --cell-hover: rgba(13, 110, 253, 0.1);
+
+  /* Code pane: dark in BOTH themes */
+  --code-bg: #0f172a;
+  --code-gutter-bg: #0b1326;
+  --code-border: #1e293b;
+  --code-text: #e2e8f0;
+  --code-text-muted: #64748b;
+  --code-line-num: #4a5b7d;
+  --code-input-bg: #0b1326;
+  --code-input-border: #243049;
+  --code-input-hover: #2f3e5e;
+  --code-btn: #93a4c7;
+  --code-status: #7e8db0;
+  --code-selection: rgba(13, 110, 253, 0.35);
+  --code-band: rgba(255, 193, 7, 0.12);
+  --code-band-line: rgba(255, 193, 7, 0.4);
+  --code-band-pinned: rgba(13, 110, 253, 0.1);
+  --code-band-pinned-line: rgba(13, 110, 253, 0.45);
+
+  /* Syntax tokens (dark pane, both themes) */
+  --tok-tag: #7dd3fc;
+  --tok-attr: #c4b5fd;
+  --tok-value: #86efac;
+  --tok-punct: #94a3b8;
+  --tok-comment: #64748b;
+  --tok-entity: #fbbf24;
+}
+
+/* ---- Dark theme (manual choice; mirrors the media block below) ---- */
+:root[data-theme="dark"] {
+  --bg-app: #0d1424;
+  --surface: #131c30;
+  --surface-sunken: #1a2540;
+  --scrim: rgba(3, 7, 18, 0.6);
+
+  --text-1: #e7edf9;
+  --text-2: #b9c4dc;
+  --text-soft: #93a1c0;
+  --text-muted: #7d8cab;
+
+  --border-hairline: #253353;
+  --border-strong: #3a4b73;
+
+  --accent: #6ea8fe;
+  --accent-strong: #9cc4ff;
+  --accent-soft: rgba(110, 168, 254, 0.2);
+
+  --ok: #34c38f;
+  --warn-line: #fbbf24;
+  --warn-bg: #33290f;
+  --warn-text: #f2d49b;
+  --warn-text-2: #e5b95e;
+
+  --kbd-bg: #1e2a44;
+
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* ---- Dark theme (OS default; applies unless the user chose light) ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-app: #0d1424;
+    --surface: #131c30;
+    --surface-sunken: #1a2540;
+    --scrim: rgba(3, 7, 18, 0.6);
+
+    --text-1: #e7edf9;
+    --text-2: #b9c4dc;
+    --text-soft: #93a1c0;
+    --text-muted: #7d8cab;
+
+    --border-hairline: #253353;
+    --border-strong: #3a4b73;
+
+    --accent: #6ea8fe;
+    --accent-strong: #9cc4ff;
+    --accent-soft: rgba(110, 168, 254, 0.2);
+
+    --ok: #34c38f;
+    --warn-line: #fbbf24;
+    --warn-bg: #33290f;
+    --warn-text: #f2d49b;
+    --warn-text-2: #e5b95e;
+
+    --kbd-bg: #1e2a44;
+
+    --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
 }
 
 body {
-  background:
-    radial-gradient(circle at top left, rgba(13, 110, 253, 0.14), transparent 30%),
-    linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
+  background: var(--bg-app);
   min-height: 100vh;
   font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--text-1);
 }
 
 /* ---------- Nav ---------- */
 .app-nav {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 0.5rem;
+  padding: 0.9rem 1rem 0.6rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -33,28 +175,28 @@ body {
 .app-brand {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 .app-brand-icon {
-  font-size: 2.1rem;
-  color: var(--scribe-blue);
+  font-size: 1.7rem;
+  color: var(--accent);
 }
 .app-title {
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  color: #0a3d8f;
+  color: var(--accent-strong);
   margin: 0;
 }
 .app-subtitle {
   font-size: 0.85rem;
-  color: #8892a0;
-  font-weight: 400;
-  margin-left: 0.4rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-left: 0.35rem;
 }
 .app-tagline {
   margin: 0;
-  color: #8892a0;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 /* ---------- Shell ---------- */
@@ -64,62 +206,61 @@ body {
   padding: 1.25rem 1rem 3rem;
 }
 
-/* ---------- Cards ---------- */
+/* ---------- Cards (flat surfaces, hairline borders, no shadow) ---------- */
 .card-surface {
-  border: 1px solid var(--scribe-border);
-  box-shadow: var(--scribe-shadow);
-  border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 .card-title {
   font-size: 1.05rem;
   font-weight: 600;
-  color: #1f2a44;
+  color: var(--text-1);
   margin: 0 0 0.75rem;
-}
-
-/* ---------- Left rail ---------- */
-.rail-heading {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #1f2a44;
-  margin: 0 0 0.4rem;
-}
-.rail-steps {
-  font-size: 0.85rem;
-  color: #4a5673;
-  padding-left: 1.1rem;
-  margin: 0;
-}
-.rail-steps li {
-  margin-bottom: 0.4rem;
 }
 
 /* ---------- Editor surfaces ---------- */
 .editor-surface {
-  background: #ffffff;
-  border: 1px solid #dce7ff;
-  border-radius: 0.75rem;
+  background: var(--page-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-control);
   padding: 1rem 1.1rem;
   min-height: 60px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
   outline: none;
 }
 .editor-surface:focus {
-  border-color: var(--scribe-blue);
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.16);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0.2rem var(--accent-soft);
 }
 .editor-surface:empty::before {
   content: attr(data-placeholder);
-  color: #8892a0;
+  color: var(--text-muted);
   pointer-events: none;
 }
 .live-surface {
   min-height: 340px;
   line-height: 1.6;
+  color: #1f2a44;
 }
+
+/* --- Live view internals: page preview, constant light-page colors ---
+ * The Live view renders a printed Canada.ca page, so EVERYTHING inside it
+ * keeps light-page values in BOTH themes. Bootstrap's data-bs-theme=dark
+ * would otherwise flip inherited text (--bs-body-color), links
+ * (--bs-link-color), code (--bs-code-color), kbd (swapped bg), hr
+ * (currentColor border) and mark (--bs-highlight-bg) — all pinned here. */
+.live-surface a { color: #0d6efd; }
+.live-surface code { color: #d63384; }
+.live-surface kbd {
+  background-color: #212529;
+  color: #fff;
+}
+.live-surface hr { border-color: #212529; }
+.live-surface mark { background-color: #fff3cd; }
+.live-surface:empty::before { color: #8892a0; }
+
+/* --- Live view internals: page preview, constant light-page colors --- */
 .live-surface :where(h1, h2, h3, h4, h5, h6) {
   margin: 0.8em 0 0.4em;
   font-weight: 600;
@@ -179,7 +320,8 @@ body {
 .live-surface .mrgn-lft-xl { margin-left: 2rem; }
 .live-surface .fnt-nrml { font-weight: 400; }
 
-/* ---------- Image placeholder (image-placeholders spec scenario 1) ---------- */
+/* ---------- Image placeholder (image-placeholders spec scenario 1) ----------
+ * Page-preview element: amber on the white page in both themes. */
 .live-surface .img-placeholder {
   display: inline-block;
   padding: 0.5em 0.8em;
@@ -187,18 +329,62 @@ body {
   border: 2px dashed #f59e0b;
   background: #fffbeb;
   color: #92400e;
-  border-radius: 0.4em;
+  border-radius: var(--radius-small);
   font-family: monospace;
   font-size: 0.85em;
+}
+
+/* ---------- Paste-first empty state (ui-shell spec) ---------- */
+.live-wrap {
+  position: relative;
+}
+.empty-hero {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  text-align: center;
+  padding: 2rem;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+  color: var(--text-1);
+  cursor: text;
+  font-size: 0.95rem;
+}
+.empty-hero[hidden] { display: none; }
+.empty-hero .empty-hero-icon {
+  font-size: 2rem;
+  color: var(--accent);
+}
+.empty-hero p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.9rem;
+}
+.empty-hero code {
+  background: var(--kbd-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.2rem;
+  padding: 0 0.25rem;
+  font-size: 0.82rem;
+}
+.empty-hero.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 /* ---------- Code view ---------- */
 .code-textarea {
   width: 100%;
-  background: #0f172a;
-  color: #e2e8f0;
-  border: 1px solid #1e293b;
-  border-radius: 0.75rem;
+  background: var(--code-bg);
+  color: var(--code-text);
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-control);
   padding: 1rem 1.1rem;
   font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
   font-size: 0.85rem;
@@ -210,8 +396,8 @@ body {
   tab-size: 2;
 }
 .code-textarea:focus {
-  border-color: var(--scribe-blue);
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0.2rem var(--accent-soft);
 }
 
 /* Code editor: gutter + textarea side by side, scroll locked together.
@@ -220,10 +406,10 @@ body {
  * textarea itself keeps resize:none and simply fills the container. */
 .code-editor {
   display: flex;
-  border: 1px solid #1e293b;
-  border-radius: 0.75rem;
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-control);
   overflow: hidden;
-  background: #0f172a;
+  background: var(--code-bg);
   resize: vertical;
   height: 55vh;
   min-height: 360px;
@@ -233,8 +419,8 @@ body {
   flex: 0 0 auto;
   min-width: 3rem;
   padding: 1rem 0.6rem 1rem 0.7rem;
-  background: #0b1326;
-  color: #4a5b7d;
+  background: var(--code-gutter-bg);
+  color: var(--code-line-num);
   font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
   font-size: 0.85rem;
   line-height: 1.5;
@@ -266,7 +452,7 @@ body {
   white-space: pre;
   tab-size: 2;
   overflow-wrap: normal;
-  color: #e2e8f0;
+  color: var(--code-text);
 }
 .code-editor .code-textarea {
   position: relative;
@@ -280,23 +466,23 @@ body {
   /* Transparent text over the highlight overlay; the caret stays visible. */
   background: transparent;
   color: transparent;
-  caret-color: #e2e8f0;
+  caret-color: var(--code-text);
 }
 .code-editor .code-textarea::selection {
-  background: rgba(13, 110, 253, 0.35);
+  background: var(--code-selection);
 }
 .code-editor .code-textarea::placeholder {
-  color: #64748b;
+  color: var(--code-text-muted);
 }
 
-/* Token colors (dark theme). */
-.tok-tag { color: #7dd3fc; }            /* light blue */
-.tok-attr { color: #c4b5fd; }           /* violet */
-.tok-value { color: #86efac; }          /* green */
-.tok-punct { color: #94a3b8; }          /* slate */
-.tok-comment { color: #64748b; font-style: italic; }
-.tok-doctype { color: #64748b; }
-.tok-entity { color: #fbbf24; }         /* amber */
+/* Token colors (dark theme pane). */
+.tok-tag { color: var(--tok-tag); }
+.tok-attr { color: var(--tok-attr); }
+.tok-value { color: var(--tok-value); }
+.tok-punct { color: var(--tok-punct); }
+.tok-comment { color: var(--tok-comment); font-style: italic; }
+.tok-doctype { color: var(--tok-comment); }
+.tok-entity { color: var(--tok-entity); }
 
 /* Code-view toolbar + find panel. */
 .code-toolbar {
@@ -306,28 +492,27 @@ body {
   margin-bottom: 0.5rem;
 }
 .code-toolbar kbd {
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
+  background: var(--kbd-bg);
+  border: 1px solid var(--border-strong);
   border-radius: 0.25rem;
   padding: 0 0.3rem;
   font-size: 0.72rem;
-  color: #1f2a44;
+  color: var(--text-1);
 }
-/* Near-black so the shortcut hint reads clearly against the light card. */
 .code-shortcut-hint {
-  color: #1f2a44;
+  color: var(--text-1);
 }
 .code-find-panel {
   position: relative;
-  background: rgba(15, 23, 42, 0.97);
-  border: 1px solid #1e293b;
-  border-radius: 0.6rem;
+  background: var(--surface-overlay);
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-control);
   padding: 0.45rem;
   margin-bottom: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-float);
 }
 .code-find-panel[hidden] { display: none; }
 .code-find-row {
@@ -338,20 +523,20 @@ body {
 .code-find-row-spacer { width: 1.4rem; }
 .code-find-input {
   flex: 1 1 auto;
-  background: #0b1326;
-  color: #e2e8f0;
-  border: 1px solid #243049;
-  border-radius: 0.35rem;
+  background: var(--code-input-bg);
+  color: var(--code-text);
+  border: 1px solid var(--code-input-border);
+  border-radius: var(--radius-small);
   padding: 0.3rem 0.5rem;
   font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
   font-size: 0.82rem;
   min-width: 0;
 }
-.code-find-input:focus { outline: none; border-color: var(--scribe-blue); }
+.code-find-input:focus { outline: none; border-color: var(--accent); }
 .code-find-icon-btn {
   flex: 0 0 auto;
   background: transparent;
-  color: #93a4c7;
+  color: var(--code-btn);
   border: none;
   border-radius: 0.3rem;
   padding: 0.25rem 0.5rem;
@@ -360,51 +545,51 @@ body {
   cursor: pointer;
   line-height: 1;
 }
-.code-find-icon-btn:hover { background: #1e2a44; color: #e2e8f0; }
+.code-find-icon-btn:hover { background: var(--overlay-hover); color: var(--code-text); }
 .code-find-icon-btn.active,
 .code-find-icon-btn[aria-pressed="true"] {
-  background: var(--scribe-blue);
+  background: var(--accent);
   color: #fff;
 }
 .code-find-close { font-size: 1.1rem; }
 .code-find-status {
   flex: 0 0 auto;
-  color: #7e8db0;
+  color: var(--code-status);
   font-size: 0.72rem;
   min-width: 4rem;
   text-align: center;
 }
 .code-find-action-btn {
-  background: #243049;
-  color: #e2e8f0;
+  background: var(--code-input-border);
+  color: var(--code-text);
   border: none;
   border-radius: 0.3rem;
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
   cursor: pointer;
 }
-.code-find-action-btn:hover { background: #2f3e5e; }
+.code-find-action-btn:hover { background: var(--code-input-hover); }
 
-/* ---------- Copy button ---------- */
+/* ---------- Copy HTML (app nav; dual-view-editor spec) ---------- */
 #copyBtn {
-  transition: all 0.25s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   font-weight: 600;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
 }
 #copyBtn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(13, 110, 253, 0.16);
+  box-shadow: var(--shadow-float);
 }
 .copy-success {
-  background: linear-gradient(135deg, #198754 0%, #20c997 100%) !important;
-  border-color: #198754 !important;
+  background: linear-gradient(135deg, var(--ok) 0%, var(--ok-strong) 100%) !important;
+  border-color: var(--ok) !important;
   color: #fff !important;
-  box-shadow: 0 10px 24px rgba(25, 135, 84, 0.24) !important;
+  box-shadow: var(--shadow-float) !important;
 }
 
 /* ---------- Warnings ---------- */
 .warning-banner .alert {
-  border-radius: 0.5rem;
+  border-radius: var(--radius-small);
   margin-bottom: 0.4rem;
 }
 .warning-banner .alert:last-child {
@@ -425,18 +610,18 @@ body {
 }
 .toast-item {
   pointer-events: auto;
-  background: rgba(15, 23, 42, 0.96);
-  color: #e2e8f0;
-  border-radius: 0.5rem;
+  background: var(--surface-overlay);
+  color: var(--code-text);
+  border-radius: var(--radius-small);
   padding: 0.6rem 0.85rem;
   font-size: 0.85rem;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
-  border-left: 3px solid #0d6efd;
+  box-shadow: var(--shadow-float);
+  border-left: 3px solid var(--accent);
   animation: toast-in 0.18s ease-out;
 }
-.toast-item.toast-success { border-left-color: #198754; }
-.toast-item.toast-info { border-left-color: #0d6efd; }
-.toast-item.toast-warn { border-left-color: #f59e0b; }
+.toast-item.toast-success { border-left-color: var(--ok); }
+.toast-item.toast-info { border-left-color: var(--accent); }
+.toast-item.toast-warn { border-left-color: var(--warn-line); }
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -447,7 +632,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 1075;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -455,9 +640,10 @@ body {
 }
 .recovery-prompt[hidden] { display: none; }
 .recovery-card {
-  background: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  background: var(--surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-float);
   padding: 1.6rem 1.8rem;
   max-width: 460px;
   width: 100%;
@@ -467,18 +653,18 @@ body {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--scribe-blue);
+  color: var(--accent);
 }
 .recovery-card h2 {
   font-size: 1.2rem;
   font-weight: 700;
   margin: 0.3rem 0 0.4rem;
-  color: #1f2a44;
+  color: var(--text-1);
 }
-.recovery-card p { color: #4a5673; font-size: 0.9rem; margin: 0 0 0.3rem; }
+.recovery-card p { color: var(--text-2); font-size: 0.9rem; margin: 0 0 0.3rem; }
 .recovery-card .recovery-privacy {
   font-size: 0.78rem;
-  color: #6b7894;
+  color: var(--text-soft);
 }
 .recovery-actions {
   display: flex;
@@ -496,42 +682,41 @@ body {
   gap: 0.3rem;
   padding: 0.4rem 0.5rem;
   margin-bottom: 0.6rem;
-  background: #f4f6ff;
-  border: 1px solid #dce7ff;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-control);
   /* Follow the user down the screen while the Live view scrolls; releases
    * when the card scrolls past. Solid background so content never shows
    * through the pinned toolbar. */
   position: sticky;
   top: 0.5rem;
   z-index: 30;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
-}
-  border-radius: 0.6rem;
 }
 .wysiwyg-toolbar .btn { line-height: 1; }
 .wysiwyg-toolbar .btn.active,
 .wysiwyg-toolbar .btn[aria-pressed="true"] {
-  background: var(--scribe-blue);
-  color: #fff;
-  border-color: var(--scribe-blue);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
 }
 .wysiwyg-divider {
   display: inline-block;
   width: 1px;
   align-self: stretch;
-  background: #c7d2fe;
+  background: var(--border-strong);
   margin: 0 0.15rem;
 }
 .wysiwyg-block { display: inline-flex; align-items: center; }
 .wysiwyg-block .form-select { width: auto; min-width: 8rem; }
 
-/* ---------- Rendered "On this page" ToC (gc-toc) in Live preview ---------- */
+/* ---------- Rendered "On this page" ToC (gc-toc) in Live preview ----------
+ * Page-preview element: constant light-page colors in both themes. */
 .live-surface nav.gc-toc {
   margin: 1rem 0 1.5rem;
   padding: 0.85rem 1rem 0.6rem;
   background: #f4f6ff;
-  border-left: 4px solid var(--scribe-blue);
-  border-radius: 0.4rem;
+  border-left: 4px solid #0d6efd;
+  border-radius: var(--radius-small);
 }
 .live-surface nav.gc-toc > h2 {
   font-size: 1.05rem;
@@ -547,7 +732,7 @@ body {
   margin: 0.15rem 0;
 }
 .live-surface nav.gc-toc a {
-  color: var(--scribe-blue);
+  color: #0d6efd;
 }
 /* Collapsible variant: <details><summary>On this page</summary><nav…>*/
 .live-surface details > summary {
@@ -556,7 +741,7 @@ body {
   color: #1f2a44;
 }
 .live-surface details > summary:hover {
-  color: var(--scribe-blue);
+  color: #0d6efd;
 }
 
 /* ---------- Document report panel ---------- */
@@ -565,37 +750,49 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #6b7894;
+  color: var(--text-soft);
   margin: 0.9rem 0 0.3rem;
 }
 .qa-section-heading:first-child { margin-top: 0; }
+.qa-issue-count {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn-text-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
 .qa-outline ul { margin: 0; padding-left: 1rem; }
 .qa-outline li { margin: 0.1rem 0; font-size: 0.85rem; }
-.qa-outline a { color: #1f2a44; text-decoration: none; }
-.qa-outline a:hover { text-decoration: underline; color: var(--scribe-blue); }
-.qa-outline .qa-no-nav { color: #8892a0; }
+.qa-outline a { color: var(--text-1); text-decoration: none; }
+.qa-outline a:hover { text-decoration: underline; color: var(--accent); }
+.qa-outline .qa-no-nav { color: var(--text-muted); }
 .qa-outline .qa-no-id-mark {
   font-size: 0.72rem;
-  color: #b45309;
+  color: var(--warn-text-2);
   font-style: italic;
 }
 .qa-outline-l1 { font-weight: 600; }
-.qa-empty, .qa-ok { color: #8892a0; font-size: 0.82rem; margin: 0; }
-.qa-ok { color: #198754; }
-.qa-issues { margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: #4a5673; }
+.qa-empty, .qa-ok { color: var(--text-muted); font-size: 0.82rem; margin: 0; }
+.qa-ok { color: var(--ok); }
+.qa-issues { margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--text-2); }
 .qa-issue { margin: 0.2rem 0; }
 .qa-issue.qa-clickable { cursor: pointer; }
-.qa-issue.qa-clickable:hover { color: var(--scribe-blue); }
+.qa-issue.qa-clickable:hover { color: var(--accent); }
 .qa-issue .qa-fix-btn { margin-left: 0.4rem; padding: 0 0.4rem; font-size: 0.72rem; vertical-align: baseline; }
-.qa-skipped-level, .qa-bad-link { color: #b45309; }
-.qa-image-placeholder, .qa-empty-heading { color: #92400e; }
-.qa-heading-no-id, .qa-table-no-id, .qa-figure-no-id { color: #6b7894; }
+.qa-skipped-level, .qa-bad-link { color: var(--warn-text-2); }
+.qa-image-placeholder, .qa-empty-heading { color: var(--warn-text); }
+.qa-heading-no-id, .qa-table-no-id, .qa-figure-no-id { color: var(--text-soft); }
 .qa-count-results { font-size: 0.82rem; font-family: monospace; }
 .qa-count-row { padding: 0.1rem 0; }
-.qa-count-row.qa-count-error { color: #b45309; }
+.qa-count-row.qa-count-error { color: var(--warn-text-2); }
 .qa-presets { margin-top: 0.4rem; }
 
-/* ---------- Footnotes (WET wb-fnote) preview in Live view ---------- */
+/* ---------- Footnotes (WET wb-fnote) preview in Live view ----------
+ * Page-preview element: constant light-page colors in both themes. */
 .live-surface aside.wb-fnote {
   margin-top: 2rem;
   padding-top: 1rem;
@@ -612,73 +809,45 @@ body {
 .live-surface aside.wb-fnote dd { margin: 0 0 0.5rem 0; }
 .live-surface aside.wb-fnote .fn-rtn { font-size: 0.78rem; }
 .live-surface .fn-lnk,
-.live-surface .fn-rtn a { color: var(--scribe-blue); }
-
-/* ---------- Onboarding empty-state ---------- */
-.onboarding-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-  padding: 0.85rem 1rem;
-  border: 1px dashed #c7d2fe;
-  background: #f4f6ff;
-  border-radius: 0.6rem;
-  color: #1f2a44;
-  font-size: 0.88rem;
-}
-.onboarding-hint .onboarding-icon {
-  font-size: 1.4rem;
-  color: var(--scribe-blue);
-  margin-top: 0.1rem;
-}
-.onboarding-hint p { margin: 0.2rem 0 0; color: #4a5673; font-size: 0.82rem; }
-.onboarding-hint code {
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
-  border-radius: 0.2rem;
-  padding: 0 0.25rem;
-  font-size: 0.78rem;
-}
+.live-surface .fn-rtn a { color: #0d6efd; }
 
 /* ---------- Rendered canvas helpers for output clarity ---------- */
 .canvas-hint {
-  color: #8892a0;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
-/* ---------- Table editor: cell selection states ---------- */
+/* ---------- Table editor: cell selection states (page preview, constant) ---------- */
 .live-surface td.selected,
 .live-surface th.selected {
-  background: rgba(13, 110, 253, 0.22) !important;
-  outline: 1px solid rgba(13, 110, 253, 0.6);
+  background: var(--cell-fill) !important;
+  outline: 1px solid var(--cell-line);
 }
 .live-surface td.hovered,
 .live-surface th.hovered {
-  background: rgba(13, 110, 253, 0.1);
+  background: var(--cell-hover);
 }
 /* Make tables in the Live view clearly editable (cursor hint). */
 .live-surface .table-responsive table {
   cursor: cell;
 }
 
-/* ---------- Table editor toolbar (position: fixed overlay) ---------- */
+/* ---------- Table editor toolbar (floating layer) ---------- */
 .table-toolbar {
   position: fixed;
   top: 72px;
   left: 16px;
   right: 16px;
   z-index: 1045;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid var(--scribe-border);
-  border-radius: 0.9rem;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  background: var(--surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-float);
   padding: 0.6rem 0.8rem;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
   font-size: 0.85rem;
-  backdrop-filter: blur(8px);
 }
 .table-toolbar[hidden] {
   display: none;
@@ -694,7 +863,7 @@ body {
   flex-direction: column;
   gap: 0.15rem;
   font-size: 0.72rem;
-  color: #4a5673;
+  color: var(--text-2);
 }
 .tb-field span {
   font-weight: 600;
@@ -732,7 +901,7 @@ body {
 .tb-label {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #4a5673;
+  color: var(--text-2);
 }
 .tb-label-table {
   margin-left: 0.6rem;
@@ -742,7 +911,7 @@ body {
   align-items: center;
   gap: 0.25rem;
   font-size: 0.8rem;
-  color: #1f2a44;
+  color: var(--text-1);
   margin: 0;
   cursor: pointer;
 }
@@ -768,9 +937,9 @@ body {
   right: 0;
   top: 0;
   height: 0;
-  background: rgba(255, 193, 7, 0.12);
-  border-top: 1px solid rgba(255, 193, 7, 0.4);
-  border-bottom: 1px solid rgba(255, 193, 7, 0.4);
+  background: var(--code-band);
+  border-top: 1px solid var(--code-band-line);
+  border-bottom: 1px solid var(--code-band-line);
   pointer-events: none;
   z-index: 2;
 }
@@ -778,12 +947,13 @@ body {
  * band — it is the "you are here" marker for the last jump and stays until
  * the next jump or hover. */
 .code-hover-band.pinned {
-  background: rgba(13, 110, 253, 0.10);
-  border-top-color: rgba(13, 110, 253, 0.45);
-  border-bottom-color: rgba(13, 110, 253, 0.45);
+  background: var(--code-band-pinned);
+  border-top-color: var(--code-band-pinned-line);
+  border-bottom-color: var(--code-band-pinned-line);
 }
 
-/* Transient highlight on a Live element after reveal-in-live. */
+/* Transient highlight on a Live element after reveal-in-live (page preview,
+ * constant amber works on the white page in both themes). */
 .scribe-flash {
   animation: scribe-flash-anim 1.2s ease-out;
 }
@@ -838,4 +1008,47 @@ body.scribe-split .app-shell .row > section {
   flex: 0 0 100%;
   width: 100%;
   max-width: 100%;
+}
+
+/* ---------- Dark-theme fine-tuning over Bootstrap's data-bs-theme=dark ----------
+ * theme-boot.js sets data-bs-theme alongside data-theme, so Bootstrap's own
+ * dark form controls / dropdowns / alerts are handled by the framework.
+ * These few rules align its neutral grays with our navy token palette. */
+:root[data-theme="dark"] .btn-outline-secondary {
+  --bs-btn-color: var(--text-2);
+  --bs-btn-border-color: var(--border-strong);
+  --bs-btn-hover-bg: var(--surface-sunken);
+  --bs-btn-hover-color: var(--text-1);
+  --bs-btn-hover-border-color: var(--border-strong);
+  --bs-btn-active-bg: var(--surface-sunken);
+  --bs-btn-active-color: var(--text-1);
+  --bs-btn-active-border-color: var(--border-strong);
+}
+:root[data-theme="dark"] .btn-outline-primary {
+  --bs-btn-color: var(--accent);
+  --bs-btn-border-color: var(--accent);
+  --bs-btn-hover-bg: var(--accent-soft);
+  --bs-btn-hover-color: var(--accent-strong);
+  --bs-btn-hover-border-color: var(--accent);
+  --bs-btn-active-bg: var(--accent-soft);
+  --bs-btn-active-color: var(--accent-strong);
+  --bs-btn-active-border-color: var(--accent);
+}
+:root[data-theme="dark"] .dropdown-menu {
+  background: var(--surface);
+  border-color: var(--border-hairline);
+}
+:root[data-theme="dark"] .dropdown-item {
+  color: var(--text-1);
+}
+:root[data-theme="dark"] .dropdown-item:hover,
+:root[data-theme="dark"] .dropdown-item:focus {
+  background: var(--surface-sunken);
+  color: var(--text-1);
+}
+:root[data-theme="dark"] .dropdown-header {
+  color: var(--text-soft);
+}
+:root[data-theme="dark"] .btn-link {
+  color: var(--accent);
 }
