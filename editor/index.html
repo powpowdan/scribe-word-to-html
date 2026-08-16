@@ -121,7 +121,6 @@
               <div class="d-flex align-items-center gap-2">
                 <span class="text-muted small d-none d-xl-inline">paste or edit visually; stays in sync with Code</span>
                 <button type="button" id="splitViewBtn" class="btn btn-sm btn-outline-secondary" aria-pressed="false" title="Show Live and Code side by side (hover linking and linked scrolling work best here)"><i class="fa-solid fa-table-columns me-1"></i>Split view</button>
-                <button type="button" id="locateInCodeBtn" class="btn btn-sm btn-outline-secondary" title="Reveal this element's HTML in the Code view (Alt+C)"><i class="fa-solid fa-crosshairs me-1"></i>Locate in code</button>
               </div>
             </div>
             <div class="wysiwyg-toolbar" id="wysiwygToolbar" role="toolbar" aria-label="Live view formatting">
@@ -149,6 +148,11 @@
               </label>
               <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="createLink" title="Create link (Ctrl+K)"><i class="fa-solid fa-link"></i></button>
               <button type="button" class="btn btn-sm btn-outline-secondary" id="footnoteBtn" title="Insert footnote"><i class="fa-solid fa-superscript"></i></button>
+              <span class="wysiwyg-divider"></span>
+              <!-- View linking: rides in the sticky toolbar so it follows the
+                   user down the screen (crucial in stacked mode, where the
+                   Code pane is off-screen and this is the way to reach it). -->
+              <button type="button" id="locateInCodeBtn" class="btn btn-sm btn-outline-secondary" title="Reveal this element's HTML in the Code view (Alt+C)"><i class="fa-solid fa-crosshairs me-1"></i>Locate in code</button>
             </div>
             <div class="live-wrap">
               <div id="emptyHero" class="empty-hero" hidden>

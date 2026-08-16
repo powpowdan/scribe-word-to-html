@@ -64,6 +64,7 @@
     const codeEl = config.codeView ? config.codeView.element : null;
     const band = config.band || null;
     const getMap = config.getMap || (liveEl ? () => S.buildSourceMap(liveEl) : () => null);
+    const isEnabled = config.isEnabled || function () { return true; };
 
     let hoveredLiveEl = null; // Live element carrying the highlight class
     let lastBand = null;      // { line, endLine } currently outlined
@@ -109,6 +110,16 @@
       pinned = null;
     }
 
+    // Drop all passive-linking residuals (highlight class, band, pin). The
+    // pin is cleared before hideBand so it cannot be restored; callers use
+    // this when the layout switches to stacked (view-linking spec).
+    function deactivate() {
+      clearLiveClass();
+      clearPin();
+      hideBand();
+      lastBand = null;
+    }
+
     // Keep the band glued to the text while the code pane scrolls.
     function onCodeScroll() {
       if (!lastBand || !band) return;
@@ -119,6 +130,7 @@
 
     // ---- Live -> Code ----
     function onLiveOver(e) {
+      if (!isEnabled()) return;
       const node = e.target;
       if (!node || node.nodeType !== 1) return;
       // The surface's own padding/gaps: nothing under the pointer means
@@ -148,6 +160,7 @@
     }
 
     function onLiveOut(e) {
+      if (!isEnabled()) return;
       // Only clear when the pointer actually leaves the surface (not just
       // moving between the surface's own children).
       if (e.relatedTarget && liveEl.contains(e.relatedTarget)) return;
@@ -157,6 +170,7 @@
 
     // ---- Code -> Live ----
     function onCodeMove(e) {
+      if (!isEnabled()) return;
       const rect = codeEl.getBoundingClientRect();
       const y = e.clientY - rect.top + codeEl.scrollTop;
       const line = lineAtY(codeEl, y);
@@ -175,10 +189,12 @@
     }
 
     function onCodeLeave() {
+      if (!isEnabled()) return;
       clearLiveClass();
     }
 
     function onLiveLeave() {
+      if (!isEnabled()) return;
       clearLiveClass();
       hideBand();
     }
@@ -199,6 +215,7 @@
       hideBand: hideBand,
       pinBand: pinBand,
       clearPin: clearPin,
+      deactivate: deactivate,
       detach() {
         if (liveEl) {
           liveEl.removeEventListener("mouseover", onLiveOver);

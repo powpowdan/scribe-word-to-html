@@ -359,3 +359,183 @@ describe("hover linking", () => {
     view.getComputedStyle = orig;
   });
 });
+
+describe("view linking — split-mode gating", () => {
+  beforeEach(() => document.body.innerHTML === "");
+
+  it("stacked mode: hovering Live content applies no class and shows no band", () => {
+    const ctx = setup("<h2>H</h2>\n<p>text</p>");
+    ctx.band.hidden = true; // real markup ships the band hidden
+    let enabled = false;
+    S.hoverLink.mountHoverLink({
+      liveView: ctx.liveView, codeView: ctx.codeView, band: ctx.band,
+      isEnabled: () => enabled
+    });
+
+    const h2 = ctx.liveEl.querySelector("h2");
+    const before = { sel: ctx.codeEl.selectionStart, scroll: ctx.codeEl.scrollTop };
+    h2.dispatchEvent(new win.MouseEvent("mouseover", { bubbles: true }));
+    expect(h2.classList.contains("scribe-hover-linked")).toBe(false);
+    expect(ctx.band.hidden).toBe(true);
+    expect(ctx.codeEl.selectionStart).toBe(before.sel);
+    expect(ctx.codeEl.scrollTop).toBe(before.scroll);
+
+    enabled = true;
+    h2.dispatchEvent(new win.MouseEvent("mouseover", { bubbles: true }));
+    expect(h2.classList.contains("scribe-hover-linked")).toBe(true);
+    expect(ctx.band.hidden).toBe(false);
+  });
+
+  it("stacked mode: hovering Code text highlights nothing in Live", () => {
+    const ctx = setup("<p>one</p>\n<p>two</p>");
+    S.hoverLink.mountHoverLink({
+      liveView: ctx.liveView, codeView: ctx.codeView, band: ctx.band,
+      isEnabled: () => false
+    });
+    const p2 = ctx.liveEl.querySelectorAll("p")[1];
+    ctx.codeEl.dispatchEvent(
+      new win.MouseEvent("mousemove", { clientY: 32, bubbles: true })
+    );
+    expect(p2.classList.contains("scribe-hover-linked")).toBe(false);
+  });
+
+  it("stacked mode: clicking Live does not jump Code, pin, or scroll the card", () => {
+    const { liveEl, codeEl, liveView, codeView, model, band } = setup("<p>one</p>\n<p>two</p>");
+    band.hidden = true; // real markup ships the band hidden
+    const hover = S.hoverLink.mountHoverLink({
+      liveView, codeView, band, isEnabled: () => false
+    });
+    const codeCard = document.createElement("div");
+    let cardScrolled = false;
+    codeCard.scrollIntoView = () => { cardScrolled = true; };
+    S.reveal.mountReveal({
+      liveView, codeView, model, codeCard, hoverBand: hover, isEnabled: () => false
+    });
+    Object.defineProperty(codeEl, "clientHeight", { value: 200, configurable: true });
+
+    const selBefore = codeEl.selectionStart;
+    const scrollBefore = codeEl.scrollTop;
+    liveEl.querySelectorAll("p")[1].dispatchEvent(
+      new win.MouseEvent("click", { bubbles: true, detail: 1 })
+    );
+    expect(codeEl.selectionStart).toBe(selBefore);
+    expect(codeEl.selectionEnd).toBe(selBefore);
+    expect(codeEl.scrollTop).toBe(scrollBefore);
+    expect(band.hidden).toBe(true);
+    expect(cardScrolled).toBe(false);
+  });
+
+  it("stacked mode: clicking Code does not jump or flash Live", () => {
+    const { liveEl, codeEl, liveView, codeView, model } = setup("<p>one</p>\n<p>two</p>");
+    S.reveal.mountReveal({ liveView, codeView, model, isEnabled: () => false });
+
+    const off = codeEl.value.indexOf("two");
+    codeEl.setSelectionRange(off, off);
+    let jumped = false;
+    const p2 = liveEl.querySelectorAll("p")[1];
+    p2.scrollIntoView = () => { jumped = true; };
+    codeEl.dispatchEvent(new win.MouseEvent("click", { bubbles: true, detail: 1 }));
+    expect(jumped).toBe(false);
+    expect(p2.classList.contains("scribe-flash")).toBe(false);
+  });
+
+  it("stacked mode: explicit reveal in code still navigates and brings the pane into view", () => {
+    const { liveEl, codeEl, liveView, codeView, model } = setup("<p>one</p>\n<p>two</p>");
+    const codeCard = document.createElement("div");
+    let cardScrolled = false;
+    codeCard.scrollIntoView = () => { cardScrolled = true; };
+    const api = S.reveal.mountReveal({
+      liveView, codeView, model, codeCard, isEnabled: () => false
+    });
+
+    const sel = document.getSelection();
+    if (!(sel && sel.setBaseAndExtent)) return; // happy-dom Selection limits
+    const p2 = liveEl.querySelectorAll("p")[1];
+    sel.setBaseAndExtent(p2.firstChild, 0, p2.firstChild, 0);
+    document.dispatchEvent(new win.Event("selectionchange"));
+    Object.defineProperty(codeEl, "clientHeight", { value: 200, configurable: true });
+
+    expect(api.revealInCode(false)).toBe(true);
+    expect(cardScrolled).toBe(true);
+    expect(codeEl.selectionStart).toBe(codeEl.value.indexOf("<p>two"));
+    expect(codeEl.selectionEnd).toBe(codeEl.selectionStart + "<p>".length);
+  });
+
+  it("stacked mode: explicit reveal in live still navigates and flashes", () => {
+    const { liveEl, codeEl, liveView, codeView, model } = setup("<p>one</p>\n<p>two</p>");
+    const liveCard = document.createElement("div");
+    let cardScrolled = false;
+    liveCard.scrollIntoView = () => { cardScrolled = true; };
+    const api = S.reveal.mountReveal({
+      liveView, codeView, model, liveCard, isEnabled: () => false
+    });
+
+    const off = codeEl.value.indexOf("two");
+    codeEl.focus();
+    codeEl.setSelectionRange(off, off);
+    let scrolled = false;
+    const p2 = liveEl.querySelectorAll("p")[1];
+    p2.scrollIntoView = () => { scrolled = true; };
+
+    expect(api.revealInLive(false)).toBe(true);
+    expect(scrolled).toBe(true);
+    expect(cardScrolled).toBe(true);
+    expect(p2.classList.contains("scribe-flash")).toBe(true);
+  });
+
+  it("toggle lifecycle: deactivate clears residuals; re-enabling restores hover with no stale pin", () => {
+    const ctx = setup("<p>para</p>\n<p>two</p>");
+    let enabled = true;
+    const hover = S.hoverLink.mountHoverLink({
+      liveView: ctx.liveView, codeView: ctx.codeView, band: ctx.band,
+      isEnabled: () => enabled
+    });
+
+    const p = ctx.liveEl.querySelector("p");
+    p.dispatchEvent(new win.MouseEvent("mouseover", { bubbles: true }));
+    hover.pinBand(2, 3);
+    expect(ctx.band.classList.contains("pinned")).toBe(true);
+
+    enabled = false; // split -> stacked
+    hover.deactivate();
+    expect(p.classList.contains("scribe-hover-linked")).toBe(false);
+    expect(ctx.band.hidden).toBe(true);
+
+    const p2 = ctx.liveEl.querySelectorAll("p")[1];
+    p2.dispatchEvent(new win.MouseEvent("mouseover", { bubbles: true }));
+    expect(p2.classList.contains("scribe-hover-linked")).toBe(false);
+    expect(ctx.band.hidden).toBe(true);
+
+    enabled = true; // stacked -> split
+    p2.dispatchEvent(new win.MouseEvent("mouseover", { bubbles: true }));
+    expect(p2.classList.contains("scribe-hover-linked")).toBe(true);
+    expect(ctx.band.hidden).toBe(false);
+    expect(ctx.band.classList.contains("pinned")).toBe(false);
+  });
+
+  it("toggle lifecycle: re-enabling restores click-to-jump", () => {
+    const { liveEl, codeEl, liveView, codeView, model, band } = setup("<p>one</p>\n<p>two</p>");
+    band.hidden = true; // real markup ships the band hidden
+    let enabled = false;
+    const hover = S.hoverLink.mountHoverLink({
+      liveView, codeView, band, isEnabled: () => enabled
+    });
+    S.reveal.mountReveal({
+      liveView, codeView, model, hoverBand: hover, isEnabled: () => enabled
+    });
+    Object.defineProperty(codeEl, "clientHeight", { value: 200, configurable: true });
+
+    liveEl.querySelectorAll("p")[1].dispatchEvent(
+      new win.MouseEvent("click", { bubbles: true, detail: 1 })
+    );
+    expect(band.hidden).toBe(true);
+
+    enabled = true;
+    liveEl.querySelectorAll("p")[1].dispatchEvent(
+      new win.MouseEvent("click", { bubbles: true, detail: 1 })
+    );
+    expect(codeEl.selectionStart).toBe(codeEl.value.indexOf("<p>two"));
+    expect(band.hidden).toBe(false);
+    expect(band.classList.contains("pinned")).toBe(true);
+  });
+});

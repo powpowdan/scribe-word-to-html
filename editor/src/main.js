@@ -87,15 +87,25 @@
     try {
       splitOn = localStorage.getItem(SPLIT_KEY) === "1";
     } catch (e) { /* storage unavailable */ }
+    // Passive view linking (hover + click-to-jump) runs only while split is
+    // on; explicit reveal (buttons, Alt+C) stays available in both layouts
+    // (view-linking spec). hoverAPI is assigned when view linking mounts
+    // below; until then the flag simply has no consumers.
+    let linkingEnabled = splitOn;
+    let hoverAPI = null;
     const panes = $("viewPanes");
     const splitBtn = $("splitViewBtn");
     function refreshSplit() {
+      const wasEnabled = linkingEnabled;
+      linkingEnabled = splitOn;
       if (panes) panes.classList.toggle("split", splitOn);
       document.body.classList.toggle("scribe-split", splitOn);
       if (splitBtn) {
         splitBtn.classList.toggle("active", splitOn);
         splitBtn.setAttribute("aria-pressed", String(splitOn));
       }
+      // Entering stacked mode: drop any residual band/pin/highlight.
+      if (wasEnabled && !linkingEnabled && hoverAPI) hoverAPI.deactivate();
     }
     refreshSplit();
     if (splitBtn) {
@@ -256,8 +266,9 @@
         }
         return mapCache.map;
       };
-      const hoverAPI = S.hoverLink ? S.hoverLink.mountHoverLink({
-        liveView, codeView, band: $("codeHoverBand"), getMap
+      hoverAPI = S.hoverLink ? S.hoverLink.mountHoverLink({
+        liveView, codeView, band: $("codeHoverBand"), getMap,
+        isEnabled: () => linkingEnabled
       }) : null;
       const revealAPI = S.reveal ? S.reveal.mountReveal({
         liveView, codeView, model, toaster,
@@ -266,7 +277,8 @@
         liveCard: $("liveCard"),
         codeCard: $("codeCard"),
         hoverBand: hoverAPI,
-        getMap
+        getMap,
+        isEnabled: () => linkingEnabled
       }) : null;
       window.__scribe.reveal = revealAPI;
       window.__scribe.hoverLink = hoverAPI;

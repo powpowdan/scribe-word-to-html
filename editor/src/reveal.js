@@ -66,7 +66,9 @@
   }
 
   // config: { liveView, codeView, model, toaster, locateBtn, revealLiveBtn,
-  //           getMap, shortcutTarget, liveCard, codeCard }
+  //           getMap, shortcutTarget, liveCard, codeCard, isEnabled }
+  //   isEnabled — gates the passive click-to-jump only; the explicit reveal
+  //   buttons and Alt+C shortcut stay active in every layout.
   function mountReveal(config) {
     config = config || {};
     const liveView = config.liveView;
@@ -76,6 +78,7 @@
     const getMap = config.getMap || (() => S.buildSourceMap(liveEl));
     const toaster = config.toaster || null;
     const doc = liveEl.ownerDocument;
+    const isEnabled = config.isEnabled || function () { return true; };
 
     // Position memory: the Live caret's block, kept continuously via
     // selectionchange (buttons and clicks read it).
@@ -168,6 +171,7 @@
     // corresponding spot, without stealing focus or moving the caret.
     // Typing, arrow keys, and scrolling never move the other view.
     function onLiveClick(e) {
+      if (!isEnabled()) return;
       if (!e.detail) return; // keyboard-synthesized click
       const sel = doc.getSelection();
       // A non-collapsed selection means the user is selecting text, not
@@ -186,6 +190,7 @@
     }
 
     function onCodeClick(e) {
+      if (!isEnabled()) return;
       if (!e.detail) return;
       const off = codeEl.selectionStart;
       if (off == null || off !== codeEl.selectionEnd) return; // text selection
