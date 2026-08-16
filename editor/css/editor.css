@@ -783,9 +783,9 @@ body {
 .qa-issue.qa-clickable { cursor: pointer; }
 .qa-issue.qa-clickable:hover { color: var(--accent); }
 .qa-issue .qa-fix-btn { margin-left: 0.4rem; padding: 0 0.4rem; font-size: 0.72rem; vertical-align: baseline; }
-.qa-skipped-level, .qa-bad-link { color: var(--warn-text-2); }
-.qa-image-placeholder, .qa-empty-heading { color: var(--warn-text); }
-.qa-heading-no-id, .qa-table-no-id, .qa-figure-no-id { color: var(--text-soft); }
+.qa-skipped-level, .qa-bad-link, .qa-broken-anchor, .qa-weak-link-text { color: var(--warn-text-2); }
+.qa-image-placeholder, .qa-empty-heading, .qa-prose-marker, .qa-table-no-caption { color: var(--warn-text); }
+.qa-heading-no-id, .qa-table-no-id, .qa-figure-no-id, .qa-duplicate-id { color: var(--text-soft); }
 .qa-count-results { font-size: 0.82rem; font-family: monospace; }
 .qa-count-row { padding: 0.1rem 0; }
 .qa-count-row.qa-count-error { color: var(--warn-text-2); }

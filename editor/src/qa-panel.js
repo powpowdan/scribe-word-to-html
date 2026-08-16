@@ -18,6 +18,16 @@
   // the page). Only prefills an empty textarea — user edits are preserved.
   const DEFAULT_COUNT_SELECTORS = ["h1", "h2", "h3", "h4", "h5", "h6", "table", "ul", "ol", "figure"];
 
+  // Content-review wordlists, matched case-insensitively. Drafting markers
+  // use word boundaries; weak link phrases match the trimmed link text.
+  const PROSE_MARKERS = ["todo", "tbd", "lorem ipsum", "xxx"];
+  const WEAK_LINK_PHRASES = ["click here", "cliquez ici"];
+  const PROSE_MARKER_RE = new RegExp("\\b(?:" + PROSE_MARKERS.join("|") + ")\\b", "i");
+  // Blocks whose textContent is scanned for markers — the same selector
+  // resolves `block` locators, so detection and navigation stay aligned.
+  const PROSE_BLOCK_SELECTOR = "p, li, blockquote, figcaption, caption, h1, h2, h3, h4, h5, h6";
+  const PLACEHOLDER_SELECTOR = "figure.img-placeholder, .img-placeholder";
+
   function isRealHeading(h) {
     // Skip headings that belong to a generated "On this page" ToC block
     // (current gc-toc component or the earlier on-this-page variant).
@@ -59,6 +69,27 @@
   function detectIssues(root) {
     const issues = [];
 
+    // Ids in the document — one pass feeds duplicate-id detection and the
+    // broken-anchor target set.
+    const byId = new Map();
+    root.querySelectorAll("[id]").forEach((el) => {
+      const list = byId.get(el.id) || [];
+      list.push(el);
+      byId.set(el.id, list);
+    });
+    const ids = new Set(byId.keys());
+    byId.forEach((els, id) => {
+      // One row per element after the first; id navigation lands on the
+      // first occurrence, which the message identifies.
+      for (let i = 1; i < els.length; i++) {
+        issues.push({
+          type: "duplicate-id",
+          message: 'Duplicate id "' + id + '" — used ' + els.length + " times",
+          id: id
+        });
+      }
+    });
+
     // Heading hierarchy + ids + empty headings.
     let prevLevel = 0;
     let headingIdx = 0;
@@ -84,11 +115,21 @@
       prevLevel = level;
     });
 
-    // Tables without ids.
+    // Tables without ids, and tables with a missing/empty caption (the
+    // table editor normally writes one; Code-view edits bypass it).
     let tableIdx = 0;
     root.querySelectorAll("table").forEach((t) => {
       const locator = { kind: "table", index: tableIdx++ };
       if (!t.id) issues.push({ type: "table-no-id", message: "Table without an id", id: null, locator, fix: "add-id" });
+      const caption = t.querySelector("caption");
+      if (!caption || !caption.textContent.trim()) {
+        issues.push({
+          type: "table-no-caption",
+          message: "Table without a caption" + (t.id ? ': "' + t.id + '"' : ""),
+          id: t.id || null,
+          locator
+        });
+      }
     });
 
     // Figures without ids.
@@ -98,15 +139,20 @@
       if (!f.id) issues.push({ type: "figure-no-id", message: "Figure without an id", id: null, locator, fix: "add-id" });
     });
 
-    // Leftover image placeholders.
-    const ph = root.querySelectorAll("figure.img-placeholder, .img-placeholder");
-    if (ph.length) {
+    // Leftover image placeholders — one row each so every row navigates.
+    root.querySelectorAll(PLACEHOLDER_SELECTOR).forEach((p, i) => {
+      const label = (p.getAttribute("data-img-alt") || p.textContent || "")
+        .trim()
+        .replace(/^\[IMAGE:?\s*/i, "")
+        .replace(/\]$/, "")
+        .trim();
       issues.push({
         type: "image-placeholder",
-        message: ph.length + " image placeholder" + (ph.length === 1 ? "" : "s") + " still present \u2014 handle the image" + (ph.length === 1 ? "" : "s"),
-        id: ph[0].id || null
+        message: "Image placeholder still present — handle the image" + (label ? ': "' + label + '"' : ""),
+        id: p.id || null,
+        locator: { kind: "placeholder", index: i }
       });
-    }
+    });
 
     // Links with empty / placeholder href. A name-only anchor (no href) is a
     // bookmark, not a link — not an issue (Word bookmarks are stripped at the
@@ -118,7 +164,58 @@
       if (!href && a.getAttribute("name")) return; // bookmark, not a link
       if (!href || href === "#") {
         const label = a.textContent.trim();
-        issues.push({ type: "bad-link", message: "Link with empty or placeholder href" + (label ? ": \"" + label + "\"" : ""), id: a.id || null, locator, fix: "strip-link" });
+        issues.push({ type: "bad-link", message: "Link with empty or placeholder href" + (label ? ': "' + label + '"' : ""), id: a.id || null, locator, fix: "strip-link" });
+      }
+    });
+
+    // Internal links whose target id does not exist — catches anchors and
+    // stale "On this page" (gc-toc) entries alike, since both are plain
+    // internal links. External/relative hrefs are never checked.
+    let anchorIdx = 0;
+    root.querySelectorAll("a").forEach((a) => {
+      const locator = { kind: "link", index: anchorIdx++ };
+      const href = (a.getAttribute("href") || "").trim();
+      if (href.length > 1 && href.charAt(0) === "#") {
+        const frag = href.slice(1);
+        if (!ids.has(frag)) {
+          const label = a.textContent.trim();
+          issues.push({
+            type: "broken-anchor",
+            message: 'Link to missing target "#' + frag + '"' + (label ? ': "' + label + '"' : ""),
+            id: a.id || null,
+            locator
+          });
+        }
+      }
+    });
+
+    // Drafting residue (TODO, lorem ipsum, ...) in block text, checked per
+    // block so markers split across inline formatting are still caught. A
+    // block nested inside an already-flagged block is skipped (a TODO in a
+    // list reports the li, not also its inner p).
+    Array.from(root.querySelectorAll(PROSE_BLOCK_SELECTOR)).forEach((b, i) => {
+      const m = PROSE_MARKER_RE.exec(b.textContent);
+      if (!m) return;
+      const ancestor = b.parentElement ? b.parentElement.closest(PROSE_BLOCK_SELECTOR) : null;
+      if (ancestor && PROSE_MARKER_RE.test(ancestor.textContent)) return;
+      issues.push({
+        type: "prose-marker",
+        message: 'Drafting marker "' + m[0] + '" left in text',
+        id: b.id || null,
+        locator: { kind: "block", index: i }
+      });
+    });
+
+    // Generic link text ("click here") — the link's trimmed text equals the
+    // phrase, ignoring case and surrounding punctuation. Occurrences in
+    // plain prose are never flagged.
+    let weakIdx = 0;
+    root.querySelectorAll("a").forEach((a) => {
+      const locator = { kind: "link", index: weakIdx++ };
+      const label = a.textContent.trim();
+      const t = label.toLowerCase().replace(/^[\s.,;:!?"'()\u2026]+/, "").replace(/[\s.,;:!?"'()\u2026]+$/, "");
+      if (WEAK_LINK_PHRASES.indexOf(t) !== -1) {
+        issues.push({ type: "weak-link-text", message: 'Uninformative link text: "' + label + '"', id: a.id || null, locator });
       }
     });
 
@@ -178,6 +275,8 @@
       if (locator.kind === "table") return root.querySelectorAll("table")[locator.index] || null;
       if (locator.kind === "figure") return root.querySelectorAll("figure")[locator.index] || null;
       if (locator.kind === "link") return root.querySelectorAll("a")[locator.index] || null;
+      if (locator.kind === "placeholder") return root.querySelectorAll(PLACEHOLDER_SELECTOR)[locator.index] || null;
+      if (locator.kind === "block") return root.querySelectorAll(PROSE_BLOCK_SELECTOR)[locator.index] || null;
       return null;
     }
 
@@ -428,6 +527,8 @@
   S.qaPanel = {
     PRESET_KEY,
     DEFAULT_COUNT_SELECTORS,
+    PROSE_MARKERS,
+    WEAK_LINK_PHRASES,
     buildOutline,
     countSelectors,
     detectIssues,
