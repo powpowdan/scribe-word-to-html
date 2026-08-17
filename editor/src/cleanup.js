@@ -28,6 +28,17 @@
     "color", "face", "size", "id"
   ]);
 
+  // WET/GCWeb component classes survive pasting: a class attribute whose
+  // every whitespace-separated token matches one of these families is kept
+  // (e.g. "panel panel-info", "alert alert-warning", "well well-sm",
+  // "btn btn-primary", "panel-heading", "panel-title", "panel-body",
+  // "panel-footer"). Everything else still strips with the class attribute.
+  const WET_CLASS_RE = /^(panel|alert|well|btn)(-[a-z]+)?$/;
+  function isWetClassList(value) {
+    const tokens = String(value || "").trim().split(/\s+/).filter(Boolean);
+    return tokens.length > 0 && tokens.every((t) => WET_CLASS_RE.test(t));
+  }
+
   // ===========================================================================
   // DOM HELPERS  (legacy L574-L593)
   // ===========================================================================
@@ -239,7 +250,9 @@
         const isMsoVal = val.indexOf("mso-") !== -1 || val.indexOf("Mso") !== -1;
         const inRemoveList = removeAttrs.has(name);
         const isDataAttr = name.indexOf("data-") === 0;
-        if (isPresentation || isMso || isMsoVal || inRemoveList || isDataAttr) {
+        // WET component classes (panel-*, alert-*, well*, btn-*) survive.
+        const keepWetClass = name === "class" && isWetClassList(val);
+        if ((isPresentation && !keepWetClass) || isMso || isMsoVal || inRemoveList || isDataAttr) {
           node.removeAttribute(a.name);
         }
       }
@@ -260,6 +273,9 @@
     // children (Drupal/HTML structural wrappers), convert to <p> only if it has
     // purely inline/text content (Word text-in-div case).
     container.querySelectorAll("div").forEach((div) => {
+      // WET component structure (panel/well wrappers, panel-body) is kept
+      // as-is — unwrapping would destroy the component.
+      if (isWetClassList(div.getAttribute("class"))) return;
       if (div.closest("li")) {
         unwrap(div);
         return;

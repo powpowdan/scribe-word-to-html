@@ -453,6 +453,25 @@
         onError: (msg) => { if (toaster) toaster.show(msg, "warn"); else window.alert(msg); }
       });
     }
+
+    // WET components (panels, alerts, buttons, wells) from the sticky
+    // toolbar dropdown. The command callback flushes the Live view into the
+    // model as a labeled command so insertions are undoable and the Code
+    // view stays in sync.
+    if (S.components && $("componentsBtn")) {
+      S.components.mountComponents({
+        liveRoot: liveView.element,
+        toggle: $("componentsBtn"),
+        panel: $("componentsPanel"),
+        kindSelect: $("compKind"),
+        variantSelect: $("compVariant"),
+        headingChk: $("compHeading"),
+        footerChk: $("compFooter"),
+        insertBtn: $("compInsertBtn"),
+        command: (label) => model.setHTML(liveView.read(), ChangeSource.command, label),
+        toaster: toaster
+      });
+    }
   }
 
   if (document.readyState === "loading") {

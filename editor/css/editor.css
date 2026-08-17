@@ -699,6 +699,31 @@ body {
   color: var(--accent-contrast);
   border-color: var(--accent);
 }
+/* Components dropdown (wet-components): opens under its button inside the
+ * sticky toolbar. Themed via tokens so dark mode needs no overrides. */
+.components-dd { position: relative; display: inline-block; }
+.components-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 60;
+  min-width: 13rem;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  background: var(--surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-float);
+  font-size: 0.82rem;
+}
+.components-panel[hidden] { display: none; }
+.components-field { display: flex; align-items: center; gap: 0.5rem; }
+.components-field > span { flex: 0 0 auto; color: var(--text-2); }
+.components-field > select { flex: 1 1 auto; min-width: 0; }
+.components-checks { display: flex; gap: 0.9rem; }
+.components-panel .btn-primary { align-self: stretch; }
 .wysiwyg-divider {
   display: inline-block;
   width: 1px;

@@ -341,11 +341,24 @@
         if (!val) return;
         // Restore the caret the dropdown click may have dropped.
         restoreSelection();
-        // formatBlock wants a tag name; browsers accept "h2" or "<h2>".
-        exec("formatBlock", val.startsWith("<") ? val : "<" + val + ">");
-        flush();
-        refreshActive();
-        saveSelection();
+        if (val === "small") {
+          // Small text is a class toggle on the current block, not a
+          // formatBlock — the element type stays whatever it is.
+          liveRoot.focus();
+          const range = currentRange();
+          const block = range ? closestProseBlock(range.startContainer, liveRoot) : null;
+          if (block) {
+            block.classList.toggle("small");
+            flush();
+            saveSelection();
+          }
+        } else {
+          // formatBlock wants a tag name; browsers accept "h2" or "<h2>".
+          exec("formatBlock", val.startsWith("<") ? val : "<" + val + ">");
+          flush();
+          refreshActive();
+          saveSelection();
+        }
         blockSelect.value = ""; // reset so the same format can be re-applied later
       });
     }

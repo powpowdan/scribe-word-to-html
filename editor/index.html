@@ -133,10 +133,9 @@
               <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="indent" title="Increase indent"><i class="fa-solid fa-indent"></i></button>
               <button type="button" class="btn btn-sm btn-outline-secondary" id="nbspProseBtn" title="Replace spaces with &amp;nbsp; in the selection">NBSP</button>
               <span class="wysiwyg-divider"></span>
-              <label class="wysiwyg-block">
-                <span class="wb-inv">Heading / paragraph</span>
+              <label class="wysiwyg-block"> 
                 <select id="blockFormatSelect" class="form-select form-select-sm" title="Turn this block into a heading (or back to a paragraph)">
-                  <option value="">Heading…</option>
+                  <option value="">Prose structure</option>
                   <option value="p">Paragraph</option>
                   <option value="h1">Heading 1</option>
                   <option value="h2">Heading 2</option>
@@ -144,10 +143,35 @@
                   <option value="h4">Heading 4</option>
                   <option value="h5">Heading 5</option>
                   <option value="h6">Heading 6</option>
+                  <option value="small">Small text</option>
                 </select>
               </label>
               <button type="button" class="btn btn-sm btn-outline-secondary" data-cmd="createLink" title="Create link (Ctrl+K)"><i class="fa-solid fa-link"></i></button>
               <button type="button" class="btn btn-sm btn-outline-secondary" id="footnoteBtn" title="Insert footnote"><i class="fa-solid fa-superscript"></i></button>
+              <span class="wysiwyg-divider"></span>
+              <!-- WET components: dropdown mini-form. Lives in the sticky
+                   toolbar so it stays reachable mid-scroll and in split mode. -->
+              <div class="components-dd" id="componentsDD">
+                <button type="button" id="componentsBtn" class="btn btn-sm btn-outline-secondary" aria-expanded="false" aria-haspopup="true" aria-controls="componentsPanel" title="Insert a WET component (panel, alert, button, well)"><i class="fa-solid fa-shapes me-1"></i>Components</button>
+                <div class="components-panel" id="componentsPanel" hidden>
+                  <label class="components-field"><span>Kind</span>
+                    <select id="compKind" class="form-select form-select-sm">
+                      <option value="panel" selected>Panel</option>
+                      <option value="alert">Alert</option>
+                      <option value="button">Button</option>
+                      <option value="well">Well</option>
+                    </select>
+                  </label>
+                  <label class="components-field"><span>Variant</span>
+                    <select id="compVariant" class="form-select form-select-sm"></select>
+                  </label>
+                  <div class="components-checks">
+                    <label class="form-check mb-0"><input class="form-check-input" type="checkbox" id="compHeading" checked><span class="form-check-label">Heading</span></label>
+                    <label class="form-check mb-0"><input class="form-check-input" type="checkbox" id="compFooter"><span class="form-check-label">Footer</span></label>
+                  </div>
+                  <button type="button" id="compInsertBtn" class="btn btn-sm btn-primary">Insert</button>
+                </div>
+              </div>
               <span class="wysiwyg-divider"></span>
               <!-- View linking: rides in the sticky toolbar so it follows the
                    user down the screen (crucial in stacked mode, where the
@@ -342,6 +366,7 @@
   <script src="src/toasts.js"></script>
   <script src="src/document-recovery.js"></script>
   <script src="src/wysiwyg.js"></script>
+  <script src="src/components.js"></script>
   <script src="src/document-commands.js"></script>
   <script src="src/qa-panel.js"></script>
   <script src="src/footnotes.js"></script>
