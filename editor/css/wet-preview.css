@@ -1,0 +1,177 @@
+/* WET/GCWeb component preview styling for the Live view.
+ *
+ * Values transcribed from the production GCWeb theme (theme.min.css,
+ * wet-boew v4.0.x) so inserted and pasted components render the way they
+ * will on Canada.ca. Icon glyphs use the vendored Font Awesome 6 in place
+ * of Glyphicons (visually equivalent).
+ *
+ * EVERY rule is scoped under .live-surface (the Live view root) — the
+ * editor chrome, Code view, and copied output are never affected
+ * (enforced by tests/wet-preview.test.js). Explicit colors (not CSS
+ * variables) so Bootstrap's dark theme cannot tint these components:
+ * they stay authentically light in both editor themes, except the
+ * dark-theme alert backdrop noted below.
+ */
+
+/* ---------- Alerts (modern Canada.ca pattern) ----------
+ * No background fill, black text, 6px coloured left bar (segmented via
+ * border-image with a gap for the icon), 26px icon. */
+.live-surface .alert {
+  padding: 0 0 0 15px;
+  margin: 0 0 23px 10px;
+  border: 0;
+  border-left: 6px solid #000;
+  border-radius: 0;
+  background-color: transparent;
+  color: #000;
+  position: relative;
+}
+.live-surface .alert h3 {
+  font-size: 1.375rem;
+  line-height: 1.37;
+  margin: 0.35em 0 0.4em;
+  color: inherit;
+  max-width: 50ch;
+}
+.live-surface .alert p { margin-top: 0; margin-bottom: 11.5px; }
+.live-surface .alert a { color: #295376; }
+.live-surface .alert::before {
+  display: flex;
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 26px;
+  line-height: 2.3em;
+  margin-left: -1.27em;
+  padding: 2px;
+  position: absolute;
+  top: 0;
+  left: 15px;
+}
+.live-surface .alert-info {
+  border-color: #269abc;
+  border-image: linear-gradient(to bottom, #269abc 16px, #269abc 16px, transparent 16px, transparent 48px, #269abc 48px, #269abc 48px) 1 100%;
+}
+.live-surface .alert-info::before { content: "\f05a"; color: #269abc; }
+.live-surface .alert-success {
+  border-color: #278400;
+  border-image: linear-gradient(to bottom, #278400 16px, #278400 16px, transparent 16px, transparent 48px, #278400 48px, #278400 48px) 1 100%;
+}
+.live-surface .alert-success::before { content: "\f05c"; color: #278400; }
+.live-surface .alert-warning {
+  border-color: #ee7100;
+  border-image: linear-gradient(to bottom, #ee7100 16px, #ee7100 16px, transparent 16px, transparent 48px, #ee7100 48px, #ee7100 48px) 1 100%;
+}
+.live-surface .alert-warning::before { content: "\f071"; color: #ee7100; }
+.live-surface .alert-danger {
+  border-color: #d3080c;
+  border-image: linear-gradient(to bottom, #d3080c 16px, #d3080c 16px, transparent 16px, transparent 48px, #d3080c 48px, #d3080c 48px) 1 100%;
+}
+.live-surface .alert-danger::before { content: "\f00d"; color: #d3080c; }
+
+/* Dark theme only: alerts have no fill in the authentic pattern, so black
+ * text needs a light backdrop to stay readable on the dark Live surface.
+ * The accent bar and icon colours are unchanged. */
+[data-bs-theme="dark"] .live-surface .alert { background-color: #fff; }
+
+/* ---------- Panels (GCWeb / Bootstrap 3 structure) ---------- */
+.live-surface .panel {
+  margin-bottom: 23px;
+  background-color: #fff;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+.live-surface .panel-heading {
+  padding: 10px 15px;
+  border-bottom: 1px solid transparent;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+.live-surface .panel-title {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 18px;
+  color: inherit;
+}
+.live-surface .panel-body { padding: 15px; }
+.live-surface .panel-body::before,
+.live-surface .panel-body::after { display: table; content: " "; }
+.live-surface .panel-body::after { clear: both; }
+.live-surface .panel-footer {
+  padding: 10px 15px;
+  background-color: #f5f5f5;
+  border-top: 1px solid #8e8e8e;
+  border-bottom-right-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+.live-surface .panel-default { border-color: #8e8e8e; }
+.live-surface .panel-default > .panel-heading { color: #333; background-color: #f5f5f5; border-color: #8e8e8e; }
+.live-surface .panel-info { border-color: #2392a9; }
+.live-surface .panel-info > .panel-heading { color: #31708f; background-color: #d9edf7; border-color: #2392a9; }
+.live-surface .panel-success { border-color: #629339; }
+.live-surface .panel-success > .panel-heading { color: #3c763d; background-color: #dff0d8; border-color: #629339; }
+.live-surface .panel-warning { border-color: #ba8312; }
+.live-surface .panel-warning > .panel-heading { color: #8a6d3b; background-color: #fcf8e3; border-color: #ba8312; }
+.live-surface .panel-danger { border-color: #c16171; }
+.live-surface .panel-danger > .panel-heading { color: #a94442; background-color: #f2dede; border-color: #c16171; }
+
+/* ---------- Wells ---------- */
+.live-surface .well {
+  min-height: 20px;
+  padding: 19px;
+  margin-bottom: 20px;
+  background-color: #f5f5f5;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+.live-surface .well-sm { padding: 9px; border-radius: 3px; }
+.live-surface .well-lg { padding: 24px; border-radius: 6px; }
+
+/* ---------- Buttons (WET palette) ---------- */
+.live-surface .btn {
+  display: inline-block;
+  margin-bottom: 0;
+  font-weight: 400;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: none;
+  border: 1px solid transparent;
+  padding: 10px 14px;
+  font-size: 16px;
+  line-height: 1.4375;
+  border-radius: 4px;
+  user-select: none;
+}
+.live-surface .btn-default { color: #335075; background-color: #eaebed; border-color: #dcdee1; }
+.live-surface .btn-default:hover,
+.live-surface .btn-default:focus { color: #335075; background-color: #ced1d5; }
+.live-surface .btn-primary { color: #fff; background-color: #2572b4; border-color: #143c5f; }
+.live-surface .btn-primary:hover,
+.live-surface .btn-primary:focus { color: #fff; background-color: #1c578a; border-color: #091c2d; }
+.live-surface .btn-success { color: #fff; background-color: #1b6c1c; border-color: #071a07; }
+.live-surface .btn-success:hover,
+.live-surface .btn-success:focus { color: #fff; background-color: #145414; }
+.live-surface .btn-info { color: #fff; background-color: #4d4d4d; border-color: #1a1a1a; }
+.live-surface .btn-info:hover,
+.live-surface .btn-info:focus { color: #fff; background-color: #3a3a3a; }
+.live-surface .btn-warning { color: #000; background-color: #f2d40d; border-color: #917f08; }
+.live-surface .btn-warning:hover,
+.live-surface .btn-warning:focus { color: #000; background-color: #d4bd0b; }
+.live-surface .btn-danger { color: #fff; background-color: #bc3331; border-color: #6b1d1c; }
+.live-surface .btn-danger:hover,
+.live-surface .btn-danger:focus { color: #fff; background-color: #9c2927; }
+.live-surface .btn-link {
+  font-weight: 400;
+  color: #295376;
+  border-radius: 0;
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.live-surface .btn-link:hover,
+.live-surface .btn-link:focus { color: #295376; text-decoration: underline; }
