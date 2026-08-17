@@ -258,6 +258,9 @@
       }
       if (el && el.scrollIntoView) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Brief highlight so the author sees WHICH element was targeted
+        // (same flash the Code-view reveal uses; reveal.js optional).
+        if (S.reveal && S.reveal.flash) S.reveal.flash(el);
         return true;
       }
       return false;
@@ -288,6 +291,7 @@
       const el = resolveLocator(liveRoot, locator);
       if (el && el.scrollIntoView) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (S.reveal && S.reveal.flash) S.reveal.flash(el);
         return true;
       }
       return false;
